@@ -37,7 +37,7 @@ grep -q '.bun/bin' ~/.bashrc || echo 'export PATH="$HOME/.local/bin:$HOME/.bun/b
 
 echo "== spok1 workspace"
 git -C "$ROOT" pull -q --ff-only
-(cd "$ROOT" && uv sync --locked -q)
+(cd "$ROOT" && uv sync --locked --no-dev -q)
 
 echo "== GitHub (fine-grained token: spok1-brain + spok1-sandbox only)"
 if ! gh auth status >/dev/null 2>&1; then

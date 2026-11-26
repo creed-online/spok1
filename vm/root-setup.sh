@@ -25,6 +25,10 @@ export UV_CONCURRENT_DOWNLOADS="${UV_CONCURRENT_DOWNLOADS:-2}" UV_HTTP_TIMEOUT="
 [ "$(id -u)" = 0 ] || { echo "✗ run with sudo"; exit 1; }
 id spok1 >/dev/null 2>&1 || { echo "✗ user spok1 missing (cloud-init didn't run?)"; exit 1; }
 
+echo "== 0. prefer IPv4 (the VNet has no IPv6 route; uv waits on IPv6 addresses until it times out)"
+grep -q '^precedence ::ffff:0:0/96  100' /etc/gai.conf 2>/dev/null || echo 'precedence ::ffff:0:0/96  100' >> /etc/gai.conf
+echo "✓ /etc/gai.conf"
+
 echo "== 1. packages"
 DEBIAN_FRONTEND=noninteractive apt-get install -y -q unzip git >/dev/null
 mkdir -p $BASE/bin
@@ -45,7 +49,7 @@ echo "✓ $SRC at $(git -C $SRC rev-parse --short HEAD)"
 echo "== 3. guard (VM profile)"
 cd $SRC
 export UV_PYTHON_INSTALL_DIR=$BASE/uv-python UV_CACHE_DIR=$BASE/uv-cache UV_PROJECT_ENVIRONMENT=$BASE/venv
-$BASE/bin/uv sync --locked -q
+$BASE/bin/uv sync --locked --no-dev -q
 PATH="$BASE/bin:$PATH" $BASE/venv/bin/spok1 guard install --profile vm
 chown -R root:root $BASE && chmod -R go-w $BASE
 

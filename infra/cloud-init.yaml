@@ -39,6 +39,11 @@ write_files:
       # 1 GB RAM + 4 GB swap: swap a bit earlier and keep file caches smaller
       vm.swappiness = 60
       vm.vfs_cache_pressure = 150
+  - path: /etc/gai.conf
+    append: true
+    content: |
+      # spok1: the VNet has no IPv6 route; prefer IPv4 so clients don't wait on IPv6 addresses
+      precedence ::ffff:0:0/96  100
   - path: /etc/systemd/journald.conf.d/90-spok1.conf
     content: |
       [Journal]

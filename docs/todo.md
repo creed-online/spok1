@@ -182,7 +182,7 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 - [ ] Mem0 for headless jobs on the VM (a separate `spok1-vm` API key as a bearer token): moved to Phase 5, where agentd's `claude -p` jobs first need it. The manager uses the claude.ai Mem0 connector through `/login`
 - [ ] HQ channels (`#command`, `#approvals`, `#alerts`, `#daily-digest`, `#learning`) created by agentd: moved to Phase 5 (DMs work now)
 - [ ] The VM's settings template with every variable, left empty: Phase 5, together with agentd's settings
-- [ ] Small fixes: docs-writer's Windows path, `spok1` on the VM user's PATH, `~/.spok1/plans` as a T0 write root, sandbox `uv_build` range
+- [x] Small fixes (2026-11-26): docs-writer's repo path is `~/projects/...` on both machines, `spok1` on the VM user's PATH, `~/.spok1/plans` is a T0 write root, `uv_build` range widened to `<0.14` (spok1 + sandbox)
 
 **✅ Checkpoint 4: PASSED 2026-11-26**
 - [x] From the phone: "add a unit test for word_count … open a draft PR" → planned, audited (saving 6 units), cloned, coded, reviewed by Opus, pushed after the Discord 🔐 Allow → **PR #3** (draft, +8 lines). The VM guard logged 49 T0, 2 T1, 9 T2-ask
@@ -192,6 +192,11 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 ## Phase 5: The agentd runtime and the approval broker
 
 **Check first:** the healthchecks.io API, the Discord REST and gateway limits, the `claude -p --output-format json` usage fields.
+
+> **Paused here 2026-11-26. Docs checked; resume with the 3 open decisions.**
+> - Findings: only one process can hold the bot's gateway (the manager's plugin), so agentd uses **REST only** (post, create channels/webhooks, poll replies every ~10 s; 50 req/s limit). Channel and webhook creation need **Manage Channels + Manage Webhooks** (re-authorize the bot). `claude -p` auto-denies approval prompts, so T2 steps in scheduled jobs go through **`--permission-prompt-tool`** (its schema isn't documented: test it first). `-p` JSON has `num_turns`, `usage`, `modelUsage`, `total_cost_usd`, subtype `error_max_turns`; limits print "You've hit your session limit · resets …". healthchecks.io: free 20 checks, `hc-ping.com/<uuid>`, webhook alerts.
+> - **Open decisions (proposed: yes to all three):** (1) build **5a** (runtime) first, then **5b** (approval broker); (2) run agentd as its own Linux user **`spok1d`**, so agents can't read or forge approvals, grants or the headless token; (3) agentd reads replies by **REST polling** (no Claude usage).
+> - **Owner prep:** re-authorize the bot with the 2 extra permissions; a healthchecks.io check; on the VM, `claude setup-token` and the Mem0 `spok1-vm` key into agentd's protected settings file.
 
 - [ ] `spok1-agentd` skeleton: asyncio service, `agentd.service` (`Restart=always`), structured logs
 - [ ] `learning.db` schema: events, episodes, jobs, alerts, stats, audit

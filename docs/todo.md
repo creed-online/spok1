@@ -34,6 +34,7 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 | 2026-11-26 | Tech stack approved ([tech-stack.md](tech-stack.md)): pyright, GitHub Actions, asyncio, httpx, pydantic + PyYAML, croniter, sqlite-vec (only if needed), numpy, cryptography, the MCP Python SDK, Typer, FastAPI + Jinja2 + htmx + Chart.js, imaplib / the Gmail API. |
 | 2026-11-26 | **spok1 is open source**: public repo github.com/creed-online/spok1 under **Apache-2.0** (copyright Veldray). Personal data never goes into it: the brain is a separate private repo, personal details live in gitignored `*.local.yaml`, and secrets live in `.env` / the vault. |
 | 2026-11-26 | Phase 2: policy in admin-only `guardrails.toml` (1a); guard installed via **managed settings** (2a); T0/T1 **pass through** so the guard can only make things stricter (3a); private `spok1-sandbox` for tests (4). Agent teams not adopted. |
+| 2026-11-26 | Guard latency gate: **keep Python** (owner, option a). Linux 19 ms p95, Windows CI 51 ms, this laptop 141 ms. No Rust port for now. |
 | 2026-11-26 | Docker stays: rootless Docker Engine on the VM for project workloads only (test DBs, project services, builds). The core runtime stays on systemd + uv, agents never get the Docker socket, and every `docker` command goes through the guard. |
 
 ---
@@ -122,7 +123,7 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 - [x] Guard test suite: **247 cases** (the PRD asks for at least 60), including the bypass forms the docs warn about; runs in CI
 - [x] Hook launcher: `python -I -S run_guard.py --policy …` from an **admin-owned** Python and guard copy (`spok1 guard install`), precompiled
 - [!] **Latency gate FAILED on the Windows laptop:** median 110 ms, p95 141 ms (target ≤ 100). Trimmed from 196/292 ms. Floor: Python's `import re` alone is ~75 ms p95 on this laptop. → open task below
-- [ ] **Rust port of spok1-guard**, if the owner chooses it (the PRD rule when the gate fails); it reuses the 247-case suite as its spec
+- [x] Decision (2026-11-26): **keep the Python guard.** It passes on Linux (CI: 17 ms median, 19 ms p95, where the VM runs) and on Windows CI (46/51 ms); only this laptop is slow (most likely antivirus scanning each process start). Revisit the Rust port only if the laptop latency becomes a real problem.
 - [x] Hash-chained, append-only audit log (`~/.spok1/state/audit/<day>.jsonl`), secrets redacted, `spok1 guard verify-log` (the `learning.db` copy comes in Phase 5)
 - [x] Pre-flight usage estimate: `spok1 audit-plan` (turns × weight from the policy)
 

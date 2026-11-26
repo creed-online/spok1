@@ -414,7 +414,7 @@ def _run(plan: Plan, brain_repo: str | None, machine: str | None) -> None:
     if not config.get_setting("DISCORD_WEBHOOK_ALERTS"):
         plan.note(f"  1. Paste your #alerts webhook URL into {env} (DISCORD_WEBHOOK_ALERTS=)")
     plan.note("  2. Start Claude Code, run /mcp, and sign in to mem0 in the browser")
-    plan.note('  3. Test: spok1 notify "hello from spok1"')
+    plan.note(f'  3. Test: & "{exe("spok1")}" notify "hello from spok1"')
 
 
 def _check(result: subprocess.CompletedProcess[str]) -> None:

@@ -652,15 +652,98 @@ def _classify_interpreter(
         if mod == "spok1_cli":
             return classify_argv(["spok1", *argv[argv.index(module) + 1 :]], ctx)
         return v(Tier.T2, f"runs python module {module}", "interp.module")
-    if _opt_value(argv, "-c", "-e", "--eval", "-p", "--print") is not None:
-        return v(Tier.T2, f"runs inline {prog} code", "interp.inline")
+    inline = _opt_value(argv, "-c", "-e", "--eval", "-p", "--print")
+    if inline is not None:
+        return scan_code(inline, ctx).at_least(Tier.T2, f"runs inline {prog} code", "interp.inline")
     if heredoc is not None or (len(argv) > 1 and argv[1] == "-") or (piped_in and len(argv) == 1):
-        return v(Tier.T2, f"runs {prog} code from stdin", "interp.stdin")
+        body = scan_code(heredoc, ctx) if heredoc else T0_OK
+        return body.at_least(Tier.T2, f"runs {prog} code from stdin", "interp.stdin")
     if len(argv) == 1:
         return v(Tier.T2, f"starts an interactive {prog}", "interp.repl")
-    return v(
-        Tier.T2, f"runs a {prog} script ({_args(argv)[0] if _args(argv) else ''})", "interp.script"
-    )
+    script = _args(argv)[0] if _args(argv) else ""
+    found = scan_script_file(script, ctx) if script else T0_OK
+    return found.at_least(Tier.T2, f"runs a {prog} script ({script})", "interp.script")
+
+
+# ── code inspection (inline code, heredocs, small scripts) ──────────────
+# An approval prompt that says only "runs inline python code" would hide a DROP TABLE.
+# These patterns lift such code to the tier of what it does. It's a net, not a proof:
+# anything not matched still needs approval (T2).
+
+_CODE_T3 = (
+    (
+        re.compile(
+            r"\b(drop\s+(table|database|schema|view|index)|truncate\s+table|truncate\s+\w+\s*;?\s*['\"])",
+            re.I,
+        ),
+        "drops or truncates database objects",
+    ),
+    (
+        re.compile(r"\bdelete\s+from\s+[\w.\"`]+\s*(['\";)]|$)", re.I),
+        "DELETE without a WHERE clause",
+    ),
+    (
+        re.compile(r"\bupdate\s+[\w.\"`]+\s+set\b(?![^'\";]*\bwhere\b)", re.I),
+        "UPDATE without a WHERE clause",
+    ),
+    (
+        re.compile(
+            r"\b(shutil\.rmtree|os\.remove|os\.unlink|os\.rmdir|os\.removedirs|send2trash)\b|\.(unlink|rmdir)\(\s*\)",
+            re.I,
+        ),
+        "deletes files",
+    ),
+    (
+        re.compile(
+            r"\b(rmSync|rmdirSync|unlinkSync|rimraf)\b|\bfs(\.promises)?\.(rm|rmdir|unlink)\(|\)\.(rm|rmdir|unlink)\("
+        ),
+        "deletes files",
+    ),
+    (
+        re.compile(r"\brm\s+-[a-z]*r[a-z]*f|\brm\s+-[a-z]*f[a-z]*r|Remove-Item\b.*-Recurse", re.I),
+        "runs a recursive delete",
+    ),
+    (
+        re.compile(r"git\b[^'\"\n]*\bpush\b[^'\"\n]*(--force|\s-f\b|--delete|\s\+)", re.I),
+        "force-pushes or deletes remote refs",
+    ),
+    (re.compile(r"\b(flushall|flushdb)\b", re.I), "flushes a database"),
+)
+_CODE_SECRETS = re.compile(
+    r"(['\"/\\]\.env['\"]|\.env\b(?!\.example|\.sample|\.template)|id_rsa|id_ed25519|\.credentials\.json|\.ssh[/\\]|ANTHROPIC_API_KEY|\.git-credentials)",
+    re.I,
+)
+MAX_SCRIPT_BYTES = 200_000
+
+
+def scan_code(code: str, ctx: Ctx) -> Verdict:
+    if _CODE_SECRETS.search(code):
+        return v(
+            Tier.FORBIDDEN, "code that touches secret files or ANTHROPIC_API_KEY", "code.secret"
+        )
+    for pattern, what in _CODE_T3:
+        if pattern.search(code):
+            return v(Tier.T3, f"code that {what}", "code.destructive")
+    return T0_OK
+
+
+def scan_script_file(word: str, ctx: Ctx) -> Verdict:
+    path = _resolved(word, ctx)
+    if path is None:
+        return T0_OK
+    if ctx.paths.is_secret(path):
+        return v(Tier.FORBIDDEN, "runs a secret file as a script", "secret.read")
+    native = path
+    if re.match(r"^[a-z]:/", path):
+        native = path[0].upper() + path[1:]
+    try:
+        with open(native, "rb") as handle:
+            data = handle.read(MAX_SCRIPT_BYTES + 1)
+    except OSError:
+        return T0_OK  # not readable here: stays T2 ("runs a script")
+    if len(data) > MAX_SCRIPT_BYTES:
+        return T0_OK
+    return scan_code(data.decode("utf-8", errors="replace"), ctx)
 
 
 # ── git ────────────────────────────────────────────────────────────────

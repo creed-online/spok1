@@ -6,6 +6,7 @@ cwd it runs in: the project's main checkout, or an agent worktree inside it.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -183,6 +184,33 @@ BASH_CASES: list[tuple[str, str, Tier]] = [
     ("(cd /data && rm -rf cache)", POSIX_PROJ, T3),
     ("bash <<EOF\nrm -rf /data\nEOF", POSIX_PROJ, T3),
     ("rm -r $UNKNOWN_DIR", POSIX_PROJ, T3),  # can't resolve → T3
+    # inline code is inspected, so a prompt never hides what it does
+    ('python -c "print(1 + 1)"', POSIX_PROJ, T2),
+    (
+        "python -c \"import sqlite3; sqlite3.connect('test.db').execute('DROP TABLE users')\"",
+        POSIX_PROJ,
+        T3,
+    ),
+    (
+        "python -c \"import sqlite3; c=sqlite3.connect('t.db'); c.execute('DELETE FROM users')\"",
+        POSIX_PROJ,
+        T3,
+    ),
+    (
+        "python -c \"import sqlite3; c=sqlite3.connect('t.db'); c.execute('DELETE FROM users WHERE id = 3')\"",
+        POSIX_PROJ,
+        T2,
+    ),
+    ("python -c \"import shutil; shutil.rmtree('/data')\"", POSIX_PROJ, T3),
+    ("node -e \"require('fs').rmSync('/data', {recursive: true})\"", POSIX_PROJ, T3),
+    (
+        "python -c \"import subprocess; subprocess.run('git push --force', shell=True)\"",
+        POSIX_PROJ,
+        T3,
+    ),
+    ("python - <<EOF\nimport os\nos.remove('/etc/hosts')\nEOF", POSIX_PROJ, T3),
+    ("python -c \"print(open('.env').read())\"", POSIX_PROJ, F),
+    ("python -c \"import os; print(os.environ['ANTHROPIC_API_KEY'])\"", POSIX_PROJ, F),
     # FORBIDDEN
     ("cat .env", POSIX_PROJ, F),
     ("cat ~/.ssh/id_rsa", POSIX_PROJ, F),
@@ -249,6 +277,11 @@ PS_CASES: list[tuple[str, str, Tier]] = [
     ("Remove-AzResourceGroup -Name rg", WIN_PROJ, T3),
     ('powershell -Command "Remove-Item -Recurse C:\\data"', WIN_PROJ, T3),
     ("Get-ChildItem | ForEach-Object { Remove-Item $_ }", WIN_PROJ, T3),
+    (
+        "python -c \"import sqlite3; sqlite3.connect('test.db').execute('DROP TABLE users')\"",
+        WIN_PROJ,
+        T3,
+    ),
     ("Get-Content .env", WIN_PROJ, F),
     ("type C:\\Users\\U\\.ssh\\id_rsa", WIN_PROJ, F),
     ("Get-Content $env:USERPROFILE\\.config\\agent\\.env", WIN_PROJ, F),
@@ -336,3 +369,13 @@ def test_every_verdict_has_a_reason() -> None:
     for command, cwd, _ in BASH_CASES:
         got = classify_tool("Bash", {"command": command}, ctx(cwd))
         assert got.reason and got.rule, command
+
+
+def test_script_files_are_inspected(tmp_path: Path) -> None:
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    (proj / "ok.py").write_text("print('hello')\n", encoding="utf-8")
+    (proj / "wipe.py").write_text("import shutil\nshutil.rmtree('/srv/data')\n", encoding="utf-8")
+    c = PathContext(cwd=str(proj), home=str(tmp_path), temp_dirs=[])
+    assert classify_tool("Bash", {"command": "python ok.py"}, c).tier == T2
+    assert classify_tool("Bash", {"command": "python wipe.py"}, c).tier == T3

@@ -72,7 +72,7 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
   - [x] Folders: `agents/`, `skills/`, `projects/` (+ `registry.yaml`), `jobs/`, `evals/`, `inbox/`, `reports/`
   - [x] Placeholder `guardrails.yaml` and `grants.yaml` (filled in during Phase 2)
   - [x] Schemas for beliefs, jobs and skill `meta.yaml` (pydantic, in `spok1-core`) + `spok1 validate-brain`
-- [ ] Create the private brain repo `creed-online/spok1-brain` from the template (T2)
+- [x] Create the private brain repo `creed-online/spok1-brain` from the template (T2, approved 2026-11-26)
 - [ ] Interview me (10–15 questions) to seed `beliefs.yaml` and `profile.md`
 - [x] `spok1-core`: paths, config loader (machine name, `.env`, `my-details.local.yaml`), schema validation, Discord webhook sender
 - [x] Mem0: the hosted MCP server (`https://mcp.mem0.ai/mcp`), with OAuth on laptops, added by `spok1 install` (the local package is archived)
@@ -91,7 +91,8 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
   - [ ] Permission lists (`settings.laptop.json`): moved to Phase 2, together with the guard
 - [x] Tests: 43 passing (config, schemas, Discord, transcript, markers, hooks, capture end to end with a local git remote, install merge logic, junctions)
 - [ ] You: create the Discord server and an `#alerts` webhook, and paste it into `~/.config/agent/.env`
-- [ ] Run the installer on your laptop (T2), then sign in to Mem0 with `/mcp`
+- [x] Run the installer on your laptop (T2, approved 2026-11-26): Claude Code CLI 2.1.332 installed, machine registered as `laptop-ve9lombo`
+- [ ] You: sign in to Mem0 with `/mcp`
 
 **✅ Checkpoint 1**
 - [ ] A new session knows your profile and finds a Mem0 fact

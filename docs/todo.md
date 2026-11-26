@@ -73,7 +73,7 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
   - [x] Placeholder `guardrails.yaml` and `grants.yaml` (filled in during Phase 2)
   - [x] Schemas for beliefs, jobs and skill `meta.yaml` (pydantic, in `spok1-core`) + `spok1 validate-brain`
 - [x] Create the private brain repo `creed-online/spok1-brain` from the template (T2, approved 2026-11-26)
-- [ ] Interview me (10–15 questions) to seed `beliefs.yaml` and `profile.md`
+- [x] Interview me (13 questions) to seed `beliefs.yaml` (14 pinned beliefs) and `profile.md`; key preferences also saved to Mem0 (`app_id=global`)
 - [x] `spok1-core`: paths, config loader (machine name, `.env`, `my-details.local.yaml`), schema validation, Discord webhook sender
 - [x] Mem0: the hosted MCP server (`https://mcp.mem0.ai/mcp`), with OAuth on laptops, added by `spok1 install` (the local package is archived)
 - [x] `spok1-mcp`: the `spok1-notify` server (Discord webhook, send-only), plus the `spok1 notify` CLI

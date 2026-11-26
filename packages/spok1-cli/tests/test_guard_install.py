@@ -38,11 +38,7 @@ def test_uninstall_restores_the_rest() -> None:
 def test_committed_reference_settings_match_render() -> None:
     """claude/managed-settings.*.json are generated: keep them in sync with render()."""
     root = gi.repo_root() / "claude"
-    for name, lay in (("laptop", gi.layout("win32")), ("vm", gi.layout("linux"))):
-        py = str(
-            lay.python_dir
-            / ("cpython-3.12/python.exe" if name == "laptop" else "cpython-3.12/bin/python3")
-        )
-        expected = gi.render({}, py, str(lay.runner), str(lay.policy))
+    for name, platform in (("laptop", "win32"), ("vm", "linux")):
+        expected = gi.render({}, *gi.reference_paths(platform))
         committed = json.loads((root / f"managed-settings.{name}.json").read_text(encoding="utf-8"))
         assert committed == expected, f"regenerate claude/managed-settings.{name}.json"

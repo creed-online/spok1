@@ -30,13 +30,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\\opt\\spok1\\python\\cpython-3.12\\bin\\python3",
+            "command": "/opt/spok1/python/cpython-3.12/bin/python3",
             "args": [
               "-I",
               "-S",
-              "\\opt\\spok1\\guard\\run_guard.py",
+              "/opt/spok1/guard/run_guard.py",
               "--policy",
-              "\\etc\\spok1\\guardrails.toml"
+              "/etc/spok1/guardrails.toml"
             ],
             "timeout": 10,
             "onFailure": "block",

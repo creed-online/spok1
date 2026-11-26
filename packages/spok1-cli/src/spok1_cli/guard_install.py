@@ -28,7 +28,16 @@ from typing import Any, cast
 
 from spok1_cli.install import repo_root
 
-__all__ = ["install", "layout", "remove_from", "render", "repo_root", "status", "uninstall"]
+__all__ = [
+    "install",
+    "layout",
+    "reference_paths",
+    "remove_from",
+    "render",
+    "repo_root",
+    "status",
+    "uninstall",
+]
 
 PYTHON_VERSION = "3.12"
 MAX_SUBAGENTS = "3"
@@ -95,6 +104,26 @@ def layout(platform: str = sys.platform) -> Layout:
         base / "guard",
         Path("/etc/spok1/guardrails.toml"),
         Path("/etc/claude-code"),
+    )
+
+
+def reference_paths(platform: str) -> tuple[str, str, str]:
+    """(python, runner, policy) for the committed reference settings, with the right path
+    separators on any OS (CI renders the Windows file on Linux)."""
+    from pathlib import PurePosixPath, PureWindowsPath
+
+    if platform == "win32":
+        base = PureWindowsPath(r"C:\Program Files\spok1")
+        return (
+            str(base / "python" / "cpython-3.12" / "python.exe"),
+            str(base / "guard" / "run_guard.py"),
+            str(base / "guardrails.toml"),
+        )
+    base_p = PurePosixPath("/opt/spok1")
+    return (
+        str(base_p / "python" / "cpython-3.12" / "bin" / "python3"),
+        str(base_p / "guard" / "run_guard.py"),
+        "/etc/spok1/guardrails.toml",
     )
 
 

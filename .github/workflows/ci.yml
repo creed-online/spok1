@@ -45,3 +45,6 @@ jobs:
 
       - name: Tests
         run: uv run pytest
+
+      - name: Guard latency (report)
+        run: uv run pytest packages/spok1-guard/tests/test_hook.py::test_latency_gate -s -q

@@ -1,0 +1,55 @@
+# spok1 guardrails policy (PRD §6). THE OWNER EDITS THIS BY HAND, AS ADMIN/ROOT.
+#
+# This file in the repo is the template. `spok1 guard install` (run as admin) copies it to
+# a place agents can't write:
+#   Windows  C:\Program Files\spok1\guardrails.toml
+#   Linux    /etc/spok1/guardrails.toml
+#   macOS    /Library/Application Support/spok1/guardrails.toml
+# Agents, the learning engine and the auditor can never change it. The tier rules themselves
+# are code (spok1-guard) with tests; this file holds the tunables. Anything not set here uses
+# the built-in defaults.
+
+version = 1
+
+[http]
+# Non-GET requests to these hosts are T1 instead of T2. DELETE is always T3.
+allowed_hosts = [
+  "api.github.com",
+  "github.com",
+  "discord.com",
+  "mcp.mem0.ai",
+  "api.mem0.ai",
+  "hc-ping.com",
+]
+
+[paths]
+extra_roots = []       # extra folders agents may write freely (T0)
+extra_protected = []   # never writable through an agent (FORBIDDEN)
+extra_secrets = []     # never readable through an agent (FORBIDDEN)
+
+[limits]
+mass_action_records = 50   # more records/messages in one action = T3
+t3_cost_inr = 500          # any expected cost above this = T3
+
+# MCP tool tiers: first match wins (fnmatch patterns, case-insensitive), checked before the
+# built-in defaults. Unlisted tools are classified by name (get/list/search → T0,
+# create/update/send → T2, delete/remove → T3).
+# [[mcp.tiers]]
+# match = "mcp__claude_ai_Canva__export-design"
+# tier = "T0"
+
+# ── read by the auditor and the usage governor (spok1-core), not the guard ──
+
+[usage]
+# Units per turn by model (PRD §6.4); calibrate from `claude -p --output-format json`.
+model_weights = { haiku = 1, sonnet = 3, opus = 15 }
+per_task_units = 150
+per_project_day_units = 1500
+per_day_units = 4000
+max_parallel_agents = 3
+
+[quality]
+# The eval gate: a change is rejected if it drops any must-pass rubric item, or the
+# overall score by more than this percentage.
+must_pass_drop = 0
+overall_drop_pct = 2

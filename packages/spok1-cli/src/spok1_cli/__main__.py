@@ -11,6 +11,63 @@ import typer
 from spok1_cli import __version__
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, help="spok1: your agent system.")
+guard_app = typer.Typer(
+    no_args_is_help=True, help="The guard hook: install (as admin), status, bench."
+)
+app.add_typer(guard_app, name="guard")
+
+
+@guard_app.command("install")
+def guard_install(
+    dry_run: Annotated[bool, typer.Option(help="Show what would change, change nothing")] = False,
+    update_policy: Annotated[
+        bool, typer.Option(help="Replace the installed guardrails.toml (backs it up)")
+    ] = False,
+) -> None:
+    """Install the guard where agents can't change it (run as ADMIN / root)."""
+    from spok1_cli import guard_install as gi
+
+    raise typer.Exit(gi.install(dry_run=dry_run, update_policy=update_policy))
+
+
+@guard_app.command("uninstall")
+def guard_uninstall(
+    dry_run: Annotated[bool, typer.Option(help="Show what would change")] = False,
+) -> None:
+    """Remove the guard hook from managed settings (run as ADMIN / root)."""
+    from spok1_cli import guard_install as gi
+
+    raise typer.Exit(gi.uninstall(dry_run=dry_run))
+
+
+@guard_app.command("status")
+def guard_status() -> None:
+    """Show whether the guard is installed, and its latency."""
+    from spok1_cli import guard_install as gi
+
+    raise typer.Exit(gi.status())
+
+
+@guard_app.command("verify-log")
+def guard_verify_log() -> None:
+    """Check today's (and every) audit log file for tampering."""
+    from spok1_core import paths
+    from spok1_guard import audit
+
+    folder = Path(audit.audit_dir(paths.home()))
+    files = sorted(folder.glob("*.jsonl"))
+    bad = 0
+    for f in files:
+        problems = audit.verify(f)
+        bad += len(problems)
+        typer.echo(
+            f"{'✓' if not problems else '✗'} {f.name}: "
+            f"{len(f.read_text(encoding='utf-8').splitlines())} records"
+            + (f", {problems[0]}" if problems else "")
+        )
+    if not files:
+        typer.echo(f"no audit logs in {folder}")
+    raise typer.Exit(1 if bad else 0)
 
 
 @app.command()

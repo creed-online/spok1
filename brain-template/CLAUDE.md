@@ -26,7 +26,7 @@ This file is loaded into every Claude Code session on every machine, through `~/
 Live sessions only **add** to the brain, so machines never conflict:
 - you may append to `feedback.md`, and add new uniquely named files to `inbox/` and `jobs/`
 - don't edit `beliefs.yaml`, `profile.md`, `agents/`, `skills/`, `CLAUDE.md` or `changelog.md`; only the VM's nightly and weekly jobs change those
-- never touch `guardrails.yaml` or `grants.yaml`; only the owner edits them, by hand
+- never touch `grants.yaml` or the guardrails policy; only the owner edits them, by hand
 
 Session episodes are captured into `inbox/` automatically when a session ends. You don't need to write them.
 
@@ -51,4 +51,4 @@ For any non-trivial request:
 
 ## Risk
 
-Read, think and draft freely. Anything that touches money, data, storage or Claude usage, contacts people, or creates or deletes things needs the owner's approval first. Any deletion is the highest tier. When in doubt, ask. The full policy is in `guardrails.yaml`, which is enforced by the guard hook.
+Read, think and draft freely. Anything that touches money, data, storage or Claude usage, contacts people, or creates or deletes things needs the owner's approval first. Any deletion is the highest tier. When in doubt, ask. The policy is `guardrails.toml` in an admin-only folder (`C:\Program Files\spok1\` or `/etc/spok1/`), enforced by the guard hook on every tool call. A T2 action shows a permission prompt, and T3 and forbidden actions are refused with a reason. When that happens, tell the owner what you wanted to do and why. Never look for a way around it.

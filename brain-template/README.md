@@ -18,6 +18,8 @@ The private brain of a [spok1](https://github.com/creed-online/spok1) install. I
 | `inbox/` | Session episodes: `<machine>-<date>-<id>.md` | any session (new files) |
 | `reports/` | Weekly growth reports | VM jobs |
 | `changelog.md` | Every self-change and its reason | VM jobs |
-| `guardrails.yaml`, `grants.yaml` | Risk policy and standing grants | **the owner, by hand** |
+| `grants.yaml` | Standing grants | **the owner, by hand** |
+
+The guardrails policy isn't in this repo: it's `guardrails.toml` in an admin-only folder on each machine (`C:\Program Files\spok1\`, `/etc/spok1/`), so nothing that can push here can weaken it.
 
 Check the YAML files: `spok1 validate-brain`.

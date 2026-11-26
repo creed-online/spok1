@@ -1,8 +1,0 @@
-# Guardrails policy (PRD §6). ONLY THE OWNER EDITS THIS FILE, BY HAND.
-# Agents, the learning engine and the auditor can never change it.
-#
-# Placeholder until Phase 2, which defines the tiers (T0–T3, forbidden), budgets,
-# the quality floor and the project path rules, enforced by the spok1-guard hook.
-
-version: 1
-status: placeholder

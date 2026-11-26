@@ -46,7 +46,7 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "S", "RUF"]
 ignore = []
 
 [tool.ruff.lint.per-file-ignores]
-"packages/*/tests/**" = ["S101", "S105", "S106"]  # asserts and fake test secrets
+"packages/*/tests/**" = ["S101", "S105", "S106", "S108"]  # asserts and fake test secrets
 
 # ── pyright ─────────────────────────────────────────────
 [tool.pyright]

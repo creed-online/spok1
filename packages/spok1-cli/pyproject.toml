@@ -8,6 +8,7 @@ license = "Apache-2.0"
 authors = [{ name = "Veldray" }]
 dependencies = [
     "spok1-core",
+    "spok1-guard",
     "typer>=0.29.3",
 ]
 
@@ -20,4 +21,5 @@ build-backend = "uv_build"
 
 [tool.uv.sources]
 spok1-core = { workspace = true }
+spok1-guard = { workspace = true }
 

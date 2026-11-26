@@ -914,12 +914,14 @@ version = "0.0.0"
 source = { editable = "packages/spok1-cli" }
 dependencies = [
     { name = "spok1-core" },
+    { name = "spok1-guard" },
     { name = "typer" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "spok1-core", editable = "packages/spok1-core" },
+    { name = "spok1-guard", editable = "packages/spok1-guard" },
     { name = "typer", specifier = ">=0.29.3" },
 ]
 

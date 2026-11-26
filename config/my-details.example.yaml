@@ -19,7 +19,7 @@ claude:
   plan: "max"                  # subscription only; ANTHROPIC_API_KEY stays unset
 
 mem0:
-  user_id: ""                  # the same everywhere (VM, laptops, claude.ai)
+  user_id: "mem0-mcp"          # the hosted Mem0 MCP default; the same everywhere (projects use app_id)
 
 brain:
   repo: ""                     # PRIVATE repo, e.g. github.com/<you>/brain

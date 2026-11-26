@@ -212,6 +212,11 @@ def _claude(claude: str, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+def has_claudeai_mem0(mcp_list_output: str) -> bool:
+    """True if `claude mcp list` shows the claude.ai Mem0 connector."""
+    return any(line.lower().startswith("claude.ai mem0") for line in mcp_list_output.splitlines())
+
+
 def parse_subscription(status_json: str) -> str:
     """`subscriptionType` from `claude auth status` JSON ('' if missing / unparseable)."""
     try:
@@ -365,7 +370,12 @@ def _run(plan: Plan, brain_repo: str | None, machine: str | None) -> None:
         plan.note("· hooks already up to date")
 
     # 7. MCP servers (user scope)
-    if _claude(claude, "mcp", "get", MEM0_NAME).returncode != 0:
+    listing = _claude(claude, "mcp", "list").stdout
+    if has_claudeai_mem0(listing):
+        # Same hosted server, already signed in through claude.ai: adding our own would
+        # duplicate every Mem0 tool. (The VM adds it directly, with an API key, in Phase 4.)
+        plan.note("· Mem0: using your claude.ai Mem0 connector")
+    elif _claude(claude, "mcp", "get", MEM0_NAME).returncode != 0:
         plan.do(
             f"add MCP server {MEM0_NAME} ({MEM0_URL}); sign in with /mcp on first use",
             lambda: _check(
@@ -439,7 +449,8 @@ def _run(plan: Plan, brain_repo: str | None, machine: str | None) -> None:
     plan.note("Next:")
     if not config.get_setting("DISCORD_WEBHOOK_ALERTS"):
         plan.note(f"  1. Paste your #alerts webhook URL into {env} (DISCORD_WEBHOOK_ALERTS=)")
-    plan.note("  2. Start Claude Code, run /mcp, and sign in to mem0 in the browser")
+    if not has_claudeai_mem0(listing):
+        plan.note("  2. Start Claude Code, run /mcp, and sign in to mem0 in the browser")
     plan.note(f'  3. Test: & "{exe("spok1")}" notify "hello from spok1"')
 
 

@@ -17,7 +17,8 @@ This file is loaded into every Claude Code session on every machine, through `~/
 
 - **At the start of a task:** search Mem0 for memories relevant to the task and the project.
 - **When the owner corrects you or states a preference:** (1) append a dated line to `~/brain/feedback.md` (`- YYYY-MM-DD [project] what they said`), and (2) add it to Mem0. Then follow it.
-- **When you learn a durable fact** (a decision, an environment detail, a convention): add it to Mem0, with the project as context.
+- **When you learn a durable fact** (a decision, an environment detail, a convention): add it to Mem0.
+- **Mem0 scoping:** never set `user_id`; the server's default is the shared ID everywhere. Set `app_id` to the project id for project facts (e.g. `perfume`), or `global` for facts about the owner. When searching, filter by the current project's `app_id` plus `global`.
 - **Never store** secrets, tokens, passwords, webhook URLs, or other people's personal data. That goes for Mem0, the brain and logs alike.
 
 ## Rules for writing to the brain

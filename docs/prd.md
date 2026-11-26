@@ -299,6 +299,8 @@ brain/
 - Holds facts and episodes, with the same `user_id` everywhere.
 - It updates in real time across the VM, every computer and claude.ai.
 - Claude Code connects to Mem0's **hosted MCP server**, `https://mcp.mem0.ai/mcp`, the same one the claude.ai connector uses. Laptops sign in with OAuth in the browser; the VM, which runs headless, uses an API key sent as a bearer token. The local `mem0-mcp-server` package was archived in Mar 2026.
+- **IDs (tested 2026-11-26):** the hosted server files every memory under `user_id: "mem0-mcp"` unless a call overrides it. The claude.ai apps don't override it, so **`mem0-mcp` is the shared `user_id` everywhere**, and agents never set `user_id`. Projects are kept apart with **`app_id=<project>`**, and facts about me use `app_id=global`.
+- Laptops use the **claude.ai Mem0 connector** that's already signed in; `spok1 install` adds its own Mem0 server only when that connector is missing. Headless VM jobs, which can't load claude.ai connectors, add the hosted server directly with an API key (Phase 4).
 
 **What goes where:**
 

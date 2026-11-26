@@ -309,3 +309,9 @@ def test_parse_subscription() -> None:
     assert install.parse_subscription('{"subscriptionType": "Pro"}') == "pro"
     assert install.parse_subscription("not json") == ""
     assert install.parse_subscription("[]") == ""
+
+
+def test_detects_claudeai_mem0_connector() -> None:
+    listing = "claude.ai Mem0: https://mcp.mem0.ai/mcp - ✔ Connected\nspok1-notify: x - ✔ Connected"
+    assert install.has_claudeai_mem0(listing)
+    assert not install.has_claudeai_mem0("mem0: https://mcp.mem0.ai/mcp (HTTP) - ! Needs auth")

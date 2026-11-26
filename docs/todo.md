@@ -92,7 +92,7 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 - [x] Tests: 43 passing (config, schemas, Discord, transcript, markers, hooks, capture end to end with a local git remote, install merge logic, junctions)
 - [ ] You: create the Discord server and an `#alerts` webhook, and paste it into `~/.config/agent/.env`
 - [x] Run the installer on your laptop (T2, approved 2026-11-26): Claude Code CLI 2.1.332 installed, machine registered as `laptop-ve9lombo`
-- [ ] You: sign in to Mem0 with `/mcp`
+- [x] Mem0: the claude.ai Mem0 connector is already signed in and works (test fact written and read back); the duplicate `mem0` server was removed
 
 **✅ Checkpoint 1**
 - [ ] A new session knows your profile and finds a Mem0 fact
@@ -329,7 +329,7 @@ These are flagged "verify" in the PRD. Record each answer here, and in the PRD i
 - [x] Most protected settings scope: managed settings (`C:\Program Files\ClaudeCode\managed-settings.json`, `/etc/claude-code/managed-settings.json`, `/Library/Application Support/ClaudeCode/managed-settings.json`). Precedence: managed > command line > local > project > user. Permission lists merge across files; rules are checked deny → ask → allow. *(checked 2026-11-26)*
 - [x] `SessionStart` (sources: startup/resume/clear/compact/fork; can add `additionalContext`) and `SessionEnd` (reasons: clear/resume/logout/prompt_input_exit/other) both exist. **SessionEnd's default timeout is 1.5 s** (60 s max per hook). *(checked 2026-11-26)*
 - [x] Mem0: `app_id` is supported and stored on every memory, so it can be used for project namespaces. The local `mem0-mcp-server` was archived in Mar 2026; use the hosted server `https://mcp.mem0.ai/mcp` (OAuth, or an API key as a bearer token). *(checked 2026-11-26)*
-- [ ] Mem0 hosted MCP: how `user_id` / `app_id` are passed to its tools (not in the docs; test in Phase 1)
+- [x] Mem0 hosted MCP: tools add `user_id: "mem0-mcp"` automatically unless a call overrides it, and `app_id` is a parameter of `add_memory`. Decision: `mem0-mcp` is the shared user_id everywhere, with `app_id=<project>` or `global`. *(tested 2026-11-26)*
 - [x] Skills: `~/.claude/skills/` already holds your own skills, so each brain skill gets its own link (the docs confirm per-skill links work). Still to check live: that Claude Code loads agents through the `~/.claude/agents` junction (Phase 1 checkpoint).
 - [ ] `claude mcp login` vs `/mcp` for remote MCP sign-in
 - [ ] Is agent teams stable enough to adopt?

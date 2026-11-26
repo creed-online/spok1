@@ -14,7 +14,7 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 |---|---|---|---|
 | 0 | Decisions and setup | laptop | `[x]` |
 | 1 | The brain on any computer | laptop | `[x]` |
-| 2 | Guardrails, orchestration, agent factory | laptop | `[~]` |
+| 2 | Guardrails, orchestration, agent factory | laptop | `[x]` |
 | 3 | Azure VM | Azure (costs start) | `[ ]` |
 | 4 | Always-on manager and Discord | VM | `[ ]` |
 | 5 | agentd runtime and approval broker | VM | `[ ]` |
@@ -35,6 +35,7 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 | 2026-11-26 | **spok1 is open source**: public repo github.com/creed-online/spok1 under **Apache-2.0** (copyright Veldray). Personal data never goes into it: the brain is a separate private repo, personal details live in gitignored `*.local.yaml`, and secrets live in `.env` / the vault. |
 | 2026-11-26 | Phase 2: policy in admin-only `guardrails.toml` (1a); guard installed via **managed settings** (2a); T0/T1 **pass through** so the guard can only make things stricter (3a); private `spok1-sandbox` for tests (4). Agent teams not adopted. |
 | 2026-11-26 | Guard latency gate: **keep Python** (owner, option a). Linux 19 ms p95, Windows CI 51 ms, this laptop 141 ms. No Rust port for now. |
+| 2026-11-26 | Agents stop at a local commit; only the manager pushes and opens PRs, after review (owner, during /new-agent). Coders make their own worktree inside the target repo (`isolation: worktree` worktrees the session repo instead). |
 | 2026-11-26 | Docker stays: rootless Docker Engine on the VM for project workloads only (test DBs, project services, builds). The core runtime stays on systemd + uv, agents never get the Docker socket, and every `docker` command goes through the guard. |
 
 ---
@@ -138,11 +139,11 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 - [x] Sandbox for the checkpoint: private `creed-online/spok1-sandbox` (textkit + pytest), registered as project `sandbox`
 - [x] Guard installed (admin, through the Windows elevation prompt); a normal user can't change the policy, settings, guard code or its Python (verified)
 
-**✅ Checkpoint 2**
+**✅ Checkpoint 2: PASSED 2026-11-26**
 - [x] The guard test suite passes (311 tests, 258 guard cases), and the **installed** guard passes the latency gate: 85 ms median, 94 ms p95 (measured by the admin installer)
 - [x] Live attempts at `DROP TABLE` on a test DB (via `sqlite3` and via `python -c`), `rm -rf` outside the worktree and `git push --force` are stopped with the correct tier and reason: all T3 deny in a fresh session whose own permissions allowed them; targets intact; audit chain verified *(2026-11-26)*
 - [x] One request becomes 2+ parallel worktree tasks (2 coders in `spok1-sandbox/.claude/worktrees/{slugify,reverse-words}`), reviewed, draft PRs #1 and #2 opened only after the guard's T2 prompt, summary with usage (~141 units). The auditor first found **no saving**, so a `mechanical` rule was added: on the same plan it now saves 56 units (23%) by moving push/PR off opus *(2026-11-26)*
-- [ ] `/new-agent` creates a test project agent after you approve its spec card
+- [x] `/new-agent` created `sandbox/docs-writer` after the owner approved its spec card (with push/PR removed); passes `validate-brain`, registered in `project.md`, brain commit `0de11d7` pushed *(2026-11-26)*
 
 ## Phase 3: Azure VM
 

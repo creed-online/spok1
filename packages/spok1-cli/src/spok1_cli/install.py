@@ -31,6 +31,8 @@ DISCORD_WEBHOOK_ALERTS=
 DISCORD_WEBHOOK_DIGEST=
 # Your Discord user ID (lets P1 alerts @mention you)
 DISCORD_USER_ID=
+# Mem0 API key: only the VM uses it (headless jobs). Laptops use the claude.ai connector.
+MEM0_API_KEY=
 """
 
 

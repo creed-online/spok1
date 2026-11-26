@@ -113,6 +113,35 @@ def notify(
     typer.echo(f"Sent ({priority}).")
 
 
+@app.command("audit-plan")
+def audit_plan(
+    plan: Annotated[Path, typer.Argument(help="Plan YAML written by the manager")],
+    write: Annotated[bool, typer.Option(help="Overwrite the plan with the revised one")] = False,
+    as_json: Annotated[bool, typer.Option("--json", help="Machine-readable output")] = False,
+) -> None:
+    """Pre-flight check: estimate usage, suggest savings, say if approval is needed."""
+    import yaml
+
+    from spok1_core import planning
+
+    try:
+        parsed = planning.load_plan(plan)
+    except Exception as exc:
+        typer.echo(f"✗ invalid plan: {exc}", err=True)
+        raise typer.Exit(2) from exc
+    weights, budgets = planning.load_usage_policy()
+    result = planning.audit(parsed, weights, budgets)
+    if as_json:
+        typer.echo(result.model_dump_json(indent=2))
+    else:
+        typer.echo(planning.format_result(result))
+    if write:
+        data = result.revised.model_dump(exclude_defaults=True)
+        dump = getattr(yaml, "safe_dump")  # noqa: B009 - the stub's type is partly Unknown
+        plan.write_text(str(dump(data, sort_keys=False, allow_unicode=True)), encoding="utf-8")
+    raise typer.Exit(10 if result.approval_needed else 0)
+
+
 @app.command("validate-brain")
 def validate_brain(
     brain: Annotated[Path | None, typer.Option(help="Brain directory (default ~/brain)")] = None,

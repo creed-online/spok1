@@ -43,7 +43,7 @@ src = ["packages/*/src", "packages/*/tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "S", "RUF"]
-ignore = []
+ignore = ["E501"]  # the formatter owns line length; long strings stay readable
 
 [tool.ruff.lint.per-file-ignores]
 "packages/*/tests/**" = ["S101", "S105", "S106", "S108"]  # asserts and fake test secrets

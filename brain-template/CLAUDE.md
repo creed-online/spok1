@@ -39,15 +39,9 @@ To tell the owner something that can't wait for the end of the session, use the 
 
 ## How requests are run
 
-For any non-trivial request:
-1. **Route.** Work out which project this is, and load its `project.md` and agents.
-2. **Recall.** Get the relevant memories, beliefs and skills.
-3. **Plan.** Split the work into independent tasks, each with a usage estimate and a risk tier.
-4. **Pre-flight check.** Look for a cheaper way to the same quality: a smaller model, an existing skill, a cached result, less context.
-5. **Dispatch.** Hand tasks to sub-agents, at most 3 at a time, with coders in their own git worktrees.
-6. **Review.** The reviewer checks all code changes. Risky or outward-facing actions need the owner's approval.
-7. **Report.** Give one short summary, with links and the usage spent.
-8. **Debrief.** Note anything worth remembering. The episode itself is captured automatically.
+For anything non-trivial, use the **run-request** skill: route → recall → plan (YAML) → pre-flight (`spok1 audit-plan`) → approval if needed → dispatch (at most 3 sub-agents in parallel, coders in their own worktrees) → review → report with usage → debrief. To create an agent, use the **new-agent** skill.
+
+Core agents: researcher · coder · tester · reviewer · librarian · agent-architect · auditor. The manager plans and checks. It doesn't do large tasks itself.
 
 ## Risk
 

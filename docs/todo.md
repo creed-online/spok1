@@ -14,7 +14,7 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 |---|---|---|---|
 | 0 | Decisions and setup | laptop | `[x]` |
 | 1 | The brain on any computer | laptop | `[x]` |
-| 2 | Guardrails, orchestration, agent factory | laptop | `[ ]` |
+| 2 | Guardrails, orchestration, agent factory | laptop | `[~]` |
 | 3 | Azure VM | Azure (costs start) | `[ ]` |
 | 4 | Always-on manager and Discord | VM | `[ ]` |
 | 5 | agentd runtime and approval broker | VM | `[ ]` |
@@ -33,6 +33,7 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 | 2026-11-26 | **Python only**: a uv workspace with no Rust. The guard is written in plain Python with only the standard library. Phase 2 measures its latency, and only if it fails the gate (p95 over 100 ms) is the guard ported to a standalone Rust binary. |
 | 2026-11-26 | Tech stack approved ([tech-stack.md](tech-stack.md)): pyright, GitHub Actions, asyncio, httpx, pydantic + PyYAML, croniter, sqlite-vec (only if needed), numpy, cryptography, the MCP Python SDK, Typer, FastAPI + Jinja2 + htmx + Chart.js, imaplib / the Gmail API. |
 | 2026-11-26 | **spok1 is open source**: public repo github.com/creed-online/spok1 under **Apache-2.0** (copyright Veldray). Personal data never goes into it: the brain is a separate private repo, personal details live in gitignored `*.local.yaml`, and secrets live in `.env` / the vault. |
+| 2026-11-26 | Phase 2: policy in admin-only `guardrails.toml` (1a); guard installed via **managed settings** (2a); T0/T1 **pass through** so the guard can only make things stricter (3a); private `spok1-sandbox` for tests (4). Agent teams not adopted. |
 | 2026-11-26 | Docker stays: rootless Docker Engine on the VM for project workloads only (test DBs, project services, builds). The core runtime stays on systemd + uv, agents never get the Docker socket, and every `docker` command goes through the guard. |
 
 ---
@@ -105,31 +106,36 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 **Check the docs first:** the PreToolUse hook's input and output format for permission decisions, settings scopes (pick the most protected one), sub-agent frontmatter (`model`, `isolation: worktree`, `tools`, `maxTurns`, `skills`), agent teams, worktrees.
 
 **Guardrails first, before any agent can act**
-- [ ] `guardrails.yaml`: tiers T0–T3 and Forbidden, budgets, quality floor, project path rules
-- [ ] `claude/settings.laptop.json` and `settings.vm.json`: deny for Forbidden and the worst T3 commands, ask for T2/T3, allow for T0 only
-- [ ] `spok1-guard`: the classifier (standard library only, imports loaded only when needed)
-  - [ ] Shell parser: `rm`, `mv`, `chmod` outside the worktree, `rm -rf`, pipes and `sudo`
-  - [ ] SQL: statement type, `WHERE` checks, `DROP` / `TRUNCATE`
-  - [ ] Cloud CLI verbs: `az`, `gh`, `git` (push, force, history rewrites), `npm publish`, `terraform`, `kubectl`, `docker`
-  - [ ] HTTP: `DELETE`/`PUT`/`PATCH`/`POST` to hosts not on the allow-list
-  - [ ] MCP tool tiers from `connectors/registry.yaml`
-  - [ ] Project path isolation (anything outside `~/projects/<active>/` is denied)
-  - [ ] Unclear → one tier higher; unclassifiable → T2; any deletion → T3
-  - [ ] Return allow, or ask/deny with a reason, in the hook format from the docs
-- [ ] Guard test suite: **at least 60 cases** across T0–T3 and Forbidden, run in CI
-- [ ] `claude/hooks/guard.sh` and `guard.ps1`: these call the venv's `python` directly, never `uv run`
-- [ ] **Latency gate:** measure the guard's p95 on the Windows laptop. Pass is ≤ 100 ms; on failure, open a "port spok1-guard to Rust" task.
-- [ ] `spok1-core`: hash-chained, append-only audit log (`learning.db` table + daily JSONL)
-- [ ] The manager's pre-flight usage estimate (turns × model weight: haiku 1, sonnet 3, opus 15)
+- [x] Check the docs: Bash permission rules "aren't a security boundary"; a PowerShell tool exists on Windows; "ask" is auto-denied in `-p`; managed settings are admin-only; agent teams are experimental; worktrees go in `.claude/worktrees/`; hooks run inside sub-agents
+- [x] Policy: `claude/guardrails.toml` (template) → admin-only `C:\Program Files\spok1\guardrails.toml` / `/etc/spok1/guardrails.toml` (decision 1a; the brain keeps no copy)
+- [x] Settings: `claude/managed-settings.laptop.json` and `.vm.json` (generated; a test keeps them in sync): guard hook (`onFailure: block`), `disableBypassPermissionsMode`, deny rules, at most 3 sub-agents (decision 2a: managed settings)
+- [x] `spok1-guard` (standard library only, nothing imported at runtime that isn't needed)
+  - [x] Bash **and PowerShell** parsers: quotes, `&&` `;` `|`, subshells, `$(…)`, backticks, heredocs, redirections, `cd` tracking
+  - [x] Unwrapping: `bash -c`, `sh -c`, `pwsh -Command`, `cmd /c`, `sudo`, `env`, `timeout`, `xargs`, full program paths, `git -C`/`-c`; PowerShell `curl`/`wget` checked both ways
+  - [x] Programs: rm/mv/cp/chmod/dd/find/sed -i, git, gh, az, terraform, kubectl/helm, docker, npm/pnpm/yarn, pip/uv, curl/wget/httpie, SQL clients, claude, PowerShell cmdlets
+  - [x] SQL: statement type, `WHERE` checks (including `WHERE 1=1`), `DROP`/`TRUNCATE`
+  - [x] HTTP: GET T0, non-GET T1 to allow-listed hosts and T2 elsewhere, DELETE T3, uploading secret files FORBIDDEN
+  - [x] MCP tools: policy patterns, then by name (get/list → T0, create/send → T2, delete → T3)
+  - [x] Paths: worktree/scratch/project roots; protected (settings, policy, guard, managed settings); secret files (`.env`, keys, credentials)
+  - [x] Unclear → T2, unresolvable deletion → T3, `ANTHROPIC_API_KEY` → FORBIDDEN
+  - [x] Hook output: T0/T1 pass through (decision 3a: the guard only makes things stricter), T2 ask, T3/FORBIDDEN deny, crash → exit 2 (fails closed)
+- [x] Guard test suite: **247 cases** (the PRD asks for at least 60), including the bypass forms the docs warn about; runs in CI
+- [x] Hook launcher: `python -I -S run_guard.py --policy …` from an **admin-owned** Python and guard copy (`spok1 guard install`), precompiled
+- [!] **Latency gate FAILED on the Windows laptop:** median 110 ms, p95 141 ms (target ≤ 100). Trimmed from 196/292 ms. Floor: Python's `import re` alone is ~75 ms p95 on this laptop. → open task below
+- [ ] **Rust port of spok1-guard**, if the owner chooses it (the PRD rule when the gate fails); it reuses the 247-case suite as its spec
+- [x] Hash-chained, append-only audit log (`~/.spok1/state/audit/<day>.jsonl`), secrets redacted, `spok1 guard verify-log` (the `learning.db` copy comes in Phase 5)
+- [x] Pre-flight usage estimate: `spok1 audit-plan` (turns × weight from the policy)
 
 **Orchestration**
-- [ ] Core agents in `brain/agents/`: researcher, coder, reviewer, tester, librarian, agent-architect
-- [ ] Auditor, rules only for now (§7.1 pre-flight checks without haiku)
-- [ ] Manager process in `brain/CLAUDE.md`: route → recall → plan → pre-flight → dispatch → review → report → debrief
-- [ ] One worktree per coder: branch naming `agent/*`, cleanup
-- [ ] Project registry (`brain/projects/registry.yaml`) and the `project.md` schema
-- [ ] `/new-agent` skill: up to 5 questions → spec card → approval → write the definition → commit
-- [ ] Evaluate agent teams and write the decision into the decisions log
+- [x] Core agents in `brain/agents/`: researcher, coder (`isolation: worktree`, `agent/*` branch), reviewer (read-only, opus), tester, librarian (haiku), agent-architect (opus); loading through the `~/.claude/agents` junction verified
+- [x] Auditor, rules only: `auditor` agent + `spok1 audit-plan` (model downgrades, turn caps, duplicates, more than 3 in parallel, budgets, missing review, plain-code hints)
+- [x] Manager process: the `run-request` skill (route → recall → plan YAML → audit → approval → dispatch → review → report → debrief); `CLAUDE.md` stays at 48 lines
+- [x] One worktree per coder (`isolation: worktree`; Claude Code removes clean ones and keeps changed ones)
+- [x] Project registry + `project.md` schemas, checked by `validate-brain`; agent files checked too (no `bypassPermissions`, `maxTurns` required, no wildcard tools)
+- [x] `new-agent` skill: up to 5 questions → spec card → approval → write → validate → register → commit
+- [x] Agent teams: **not adopted** (experimental, interactive-only, "significantly more tokens"); dispatching to sub-agents is the pattern
+- [x] Sandbox for the checkpoint: private `creed-online/spok1-sandbox` (textkit + pytest), registered as project `sandbox`
+- [ ] You: install the guard from an **admin** terminal (`spok1 guard install`), then restart VS Code
 
 **✅ Checkpoint 2**
 - [ ] The guard test suite passes, and the latency gate passes (or the Rust port task is opened)

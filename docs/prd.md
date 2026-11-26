@@ -437,7 +437,7 @@ If a metric gets worse two weeks in a row, it says so and proposes a fix.
 - Never store secrets, tokens or other people's personal data beyond what a project needs. Lead data stays in the project's data store, not in Mem0.
 - Every change is a git commit with a reason in `changelog.md`, and `revert <item>` undoes it.
 - Learning changes apply automatically, with no approval needed (see 5.3). Every change must pass the eval gate and be reported.
-- The learning engine can never change `guardrails.yaml`, the guard hook, the deny lists or the auditor's quality floor. See section 6.
+- The learning engine can never change `guardrails.toml`, the guard hook, the deny lists or the auditor's quality floor. See section 6.
 
 ## 6. Guardrails and approvals
 
@@ -445,7 +445,7 @@ The principle: **agents may read, think and draft freely. Anything that affects 
 
 ### 6.1 Risk tiers
 
-The policy lives in `brain/guardrails.yaml`. Only I edit it, by hand, on a computer.
+The policy is **`guardrails.toml`**, in an admin-only folder on each machine: `C:\Program Files\spok1\` on Windows, `/etc/spok1/` on Linux. Only I edit it, by hand, as admin or root. Agents run as my normal user, so they can't write there, and it isn't in the brain repo, so a bad push can't weaken it (decided 2026-11-26). It's TOML because Python reads TOML with its standard library alone, which keeps the guard fast. The tier rules themselves are code in `spok1-guard`, with tests; the file holds the tunables, such as allowed hosts, extra protected paths, MCP tool tiers, budgets and quality floors.
 
 | Tier | Meaning | Examples | Approval |
 |---|---|---|---|
@@ -453,7 +453,7 @@ The policy lives in `brain/guardrails.yaml`. Only I edit it, by hand, on a compu
 | **T1: Batch** | Low risk, reversible, creates something small | New plain reminders created by an agent (not by me); local commits on an `agent/*` branch | Approved in the daily digest with one tap (`approve all`) |
 | **T2: Approve** | Money, data, storage, usage, outward-facing, or creating things | `git push` and opening PRs; installing packages; creating or editing **any** resource (cloud, database, schema, table, user, repo, mailbox, webhook, DNS); DB writes beyond test fixtures; migrations; sending any message to anyone other than me; creating agents, watchers or scheduled jobs that use an LLM; a run that will use more than the per-task usage budget or more than 3 parallel agents; changing permissions or settings; using a secret for a new purpose; any paid API or service call | **Per-action approval on Discord or in the terminal**, or a matching standing grant (6.3) |
 | **T3: Two-key** | Destructive, irreversible or high-impact | **Any deletion** of data, files outside a worktree, branches on the remote, users, databases, tables, buckets, cloud resources or repos; `DROP`, `TRUNCATE`, or `DELETE`/`UPDATE` without a narrow `WHERE`; `rm -rf`; `git push --force`; history rewrites; `az ... delete`; `terraform destroy`; mass actions (more than 50 records or messages); outreach to a new segment; anything with an expected cost above `<<₹500>>`; rotating or revoking credentials | Approval **plus** a one-time confirm code I type back, **plus** a verified backup or snapshot beforehand, **plus** a dry run shown first. No standing grants are allowed. |
-| **Forbidden** | Never, even with approval through an agent | `--dangerously-skip-permissions`; editing `guardrails.yaml`, the guard hook, settings deny lists, or the auditor's quality floor; disabling logging or audits; printing, sending or storing secrets; setting `ANTHROPIC_API_KEY`; giving any tool other than the `claude` binary my Claude credentials | Blocked. If I want one of these, I do it myself by hand. |
+| **Forbidden** | Never, even with approval through an agent | `--dangerously-skip-permissions`; editing `guardrails.toml`, the guard hook, settings deny lists, or the auditor's quality floor; disabling logging or audits; printing, sending or storing secrets; setting `ANTHROPIC_API_KEY`; giving any tool other than the `claude` binary my Claude credentials | Blocked. If I want one of these, I do it myself by hand. |
 
 **When it's unclear:**
 - If an action doesn't clearly match a tier, it is treated as **one tier higher**.
@@ -466,7 +466,9 @@ The policy lives in `brain/guardrails.yaml`. Only I edit it, by hand, on a compu
    - The `deny` rules cover the Forbidden list and the worst T3 commands.
    - The `ask` rules cover T2 and T3 tools and commands.
    - The `allow` rules cover T0 only.
-   - Settings are kept in managed or user scope where agents can't edit them. Check the docs for the most protected scope that exists.
+   - The guard hook, the deny rules, `disableBypassPermissionsMode` and the cap of 3 concurrent sub-agents live in **managed settings** (`C:\Program Files\ClaudeCode\managed-settings.json`, `/etc/claude-code/managed-settings.json`). The docs confirm this is the most protected scope: other files can't override it. `spok1 guard install`, run as admin, writes it, together with an admin-owned Python and a copy of the guard.
+   - The docs warn that Claude Code's own Bash rules "aren't a security boundary" (`bash -c`, `git -C`, full program paths all slip past them). That is why the guard parses commands itself, for Bash **and PowerShell**, and unwraps `bash -c`, `pwsh -Command`, `sudo`, `env`, `xargs` and `git -C/-c` before classifying.
+   - T0 and T1 pass through to Claude Code's normal permission rules, so the guard can only ever make things stricter. T2 returns "ask", which is automatically denied in headless `-p` runs, so no answer means no. T3 and Forbidden return "deny". If the guard crashes, it exits 2, which blocks the call: it fails closed.
 2. **The `guard` PreToolUse hook.** It's a deterministic script, with no LLM, and runs before **every** tool call: Bash, Write and Edit, MCP and web fetches.
    - It classifies the call into a tier using parsers and rules, including:
      - shell commands, and `rm`, `mv` and `chmod` outside the worktree
@@ -514,7 +516,7 @@ The policy lives in `brain/guardrails.yaml`. Only I edit it, by hand, on a compu
 ### 6.4 Claude usage as a guarded resource
 
 - Every LLM job has a **usage estimate**: expected turns × a model weight (haiku 1, sonnet 3, opus 15 units per turn). Calibrate the weights from the `--output-format json` usage data.
-- There are budgets per task, per project per day, and overall per day, in `guardrails.yaml`.
+- There are budgets per task, per project per day, and overall per day, in `guardrails.toml`.
 - Going over a budget is **T2**. Creating anything recurring that uses an LLM is **T2**, and the request shows its projected weekly usage.
 - When the plan's rate limits are close (detected from rate-limit errors and the governor's running tally), the governor pauses low-priority work and asks me what to prioritise.
 
@@ -549,7 +551,7 @@ The auditor sits next to the manager at all times. It has a single goal: **the s
 - **No proposal is adopted unless it passes the eval gate (5.2, algorithm 9) on a sample.** The cheaper setup and the current one are run on the same golden tasks. It is accepted only if its quality score is **no worse than the current one, within a set margin** (default: no drop at all on the rubric's must-pass items, and at most 2% overall).
 - **Live monitoring after adoption:** if first-try acceptance or correction rates get worse for that task type within 7 days, the change is **automatically rolled back** and reported. Rollback is pre-approved because it only restores a known-good state.
 - **Self-accounting:** the auditor's own usage is counted. If it costs more than it saves in a week, it reduces its own pre-flight checks (rules only) and reports that.
-- **No approval needed:** optimisations that pass the eval gate are applied automatically and listed in the nightly message. They can be undone with `revert`. Any change to quality floors needs me to edit `guardrails.yaml` by hand.
+- **No approval needed:** optimisations that pass the eval gate are applied automatically and listed in the nightly message. They can be undone with `revert`. Any change to quality floors needs me to edit `guardrails.toml` by hand.
 
 ## 8. Laptop and any-computer mode
 
@@ -828,7 +830,7 @@ A project with 6 or more teams and 15–25 agents can use up the Max limits quic
 - **Roll out in stages:** launch 2–3 teams first, for example Research, Marketing and Development. Add teams once the auditor shows there's room in the limits.
 - Specialists use haiku or sonnet. Opus is kept for leads' weekly planning and the manager.
 - Work cycles are short and capped (`--max-turns`), and the work they read is passed in as short summaries.
-- The auditor sets a **usage budget per team** in `guardrails.yaml`. The weekly review shows each team's usage against its output, so low-value cycles get cut first.
+- The auditor sets a **usage budget per team** in `guardrails.toml`. The weekly review shows each team's usage against its output, so low-value cycles get cut first.
 - If limits are hit, the governor pauses Research and HR before Sales and Marketing, in the priority order I set in `project.md`.
 
 ### 9.10 Many projects at once (multi-project isolation)
@@ -936,7 +938,7 @@ We evaluated existing projects on 2026-11-25 and decided to **build our own**. N
 │   └── cloud-init.yaml          # packages, git, gh, node, uv, tmux, tailscale, ffmpeg, rootless Docker, swap, non-root user
 ├── pyproject.toml               # uv workspace root listing the six packages below
 ├── brain-template/              # seed for a new brain repo (CLAUDE.md, agents, skills, evals, schemas,
-│                                # guardrails.yaml, grants.yaml)
+│                                # grants.yaml; guardrails.toml template lives in claude/)
 ├── claude/                      # Claude Code config (not Python packages)
 │   ├── settings.vm.json / settings.laptop.json   # permission allow/deny lists
 │                                # (hooks need no shims: settings.json runs `spok1 hook <event>`
@@ -1005,7 +1007,7 @@ The first phases run on the laptop and are free. Azure costs begin at Phase 3.
 
 ### Phase 2: Guardrails, orchestration and the agent factory (on the laptop)
 **Guardrails come first, before any agent can act.**
-- Write `guardrails.yaml`, the permission settings and the `guard` hook. The guard needs a unit-test suite of at least 60 cases covering T0–T3 and Forbidden.
+- Write `guardrails.toml`, the permission settings and the `guard` hook. The guard needs a unit-test suite of at least 60 cases covering T0–T3 and Forbidden.
 - Add the audit log, and the manager's pre-flight usage estimate.
 - Then write the core agents (including a rules-only auditor for now), the manager process and worktree-per-coder flow, the project registry, and `/new-agent` with the agent-architect.
 - Evaluate agent teams.
@@ -1130,7 +1132,7 @@ This is a business pilot, but the same flow applies to a tool, an NGO or any oth
 - [ ] No secrets in git, the brain, Mem0 or the logs. Lead personal data stays in the project store.
 - [ ] Outreach: approved templates, a daily cap, an opt-out in every message, a working suppression list, a separate sending domain, and my approval for each new segment.
 - [ ] Learning: every self-change applies automatically with no approval, and is committed, eval-gated, reported and revertible. Learning cannot create anything that costs usage, and cannot touch the guardrails.
-- [ ] Guardrails: the guard hook runs on every tool call on every machine, and its test suite passes. Every deletion is T3. If I don't answer an approval, it's denied. Only I can edit `guardrails.yaml`.
+- [ ] Guardrails: the guard hook runs on every tool call on every machine, and its test suite passes. Every deletion is T3. If I don't answer an approval, it's denied. Only I can edit `guardrails.toml` (admin-only folder).
 - [ ] Credentials: agents have only read-only or narrowly scoped credentials. Write, admin and delete credentials are injected only for approved commands.
 - [ ] Projects are isolated:
   - Every record carries `project_id`.

@@ -12,8 +12,8 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 
 | Phase | Name | Where | Status |
 |---|---|---|---|
-| 0 | Decisions and setup | laptop | `[~]` |
-| 1 | The brain on any computer | laptop | `[ ]` |
+| 0 | Decisions and setup | laptop | `[x]` |
+| 1 | The brain on any computer | laptop | `[x]` |
 | 2 | Guardrails, orchestration, agent factory | laptop | `[ ]` |
 | 3 | Azure VM | Azure (costs start) | `[ ]` |
 | 4 | Always-on manager and Discord | VM | `[ ]` |
@@ -90,14 +90,15 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
   - [x] Register the machine name; write `~/.config/agent/.env.example` and an empty `.env`
   - [ ] Permission lists (`settings.laptop.json`): moved to Phase 2, together with the guard
 - [x] Tests: 43 passing (config, schemas, Discord, transcript, markers, hooks, capture end to end with a local git remote, install merge logic, junctions)
-- [ ] You: create the Discord server and an `#alerts` webhook, and paste it into `~/.config/agent/.env`
+- [x] You: create the Discord server and an `#alerts` webhook, and paste it into `~/.config/agent/.env`
 - [x] Run the installer on your laptop (T2, approved 2026-11-26): Claude Code CLI 2.1.332 installed, machine registered as `laptop-ve9lombo`
 - [x] Mem0: the claude.ai Mem0 connector is already signed in and works (test fact written and read back); the duplicate `mem0` server was removed
 
-**✅ Checkpoint 1**
-- [ ] A new session knows your profile and finds a Mem0 fact
-- [ ] Session episodes appear in `brain/inbox/`
-- [ ] `notify` sends you a Discord message from the laptop
+**✅ Checkpoint 1: PASSED 2026-11-26**
+- [x] A new session knows your profile and finds a Mem0 fact (a fresh headless session answered IST / pnpm / "no AI slop" unprompted, and quoted the Mem0 test fact)
+- [x] Session episodes appear in `brain/inbox/` (`laptop-ve9lombo-2026-11-26-af9055c5.md`, pushed in 22 s, secret scan clean)
+- [x] `notify` sends you a Discord message from the laptop
+- Fixed while checking: concurrent `git pull`s clobbered each other (now under a lock); sessions without a transcript (`claude mcp list` etc.) no longer start a capture; episode titles cut at a word boundary
 
 ## Phase 2: Guardrails, orchestration and the agent factory (laptop)
 

@@ -113,11 +113,14 @@ def test_failures_retry_then_give_up() -> None:
 # ── hooks ──────────────────────────────────────────────────────────────
 
 
-def test_hooks_never_raise_and_spawn_capture(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_hooks_never_raise_and_spawn_capture(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     spawned: list[bool] = []
     monkeypatch.setattr(hooks, "spawn_capture", lambda: spawned.append(True))
+    t = write_transcript(tmp_path / "t.jsonl", 2)
     payload = json.dumps(
-        {"session_id": "s4", "transcript_path": "t", "cwd": "c", "reason": "other"}
+        {"session_id": "s4", "transcript_path": str(t), "cwd": "c", "reason": "other"}
     )
     assert hooks.run("session-start", payload) == 0
     assert spawned == []  # nothing pending yet
@@ -125,6 +128,38 @@ def test_hooks_never_raise_and_spawn_capture(monkeypatch: pytest.MonkeyPatch) ->
     assert spawned == [True]
     assert hooks.run("session-end", "not json") == 0
     assert hooks.run("unknown", "{}") == 0
+
+
+def test_session_without_transcript_is_dropped(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`claude mcp list` etc. fire the hooks but have no conversation."""
+    monkeypatch.setattr(hooks, "spawn_capture", lambda: pytest.fail("must not spawn"))
+    payload = json.dumps({"session_id": "s9", "transcript_path": "/nope.jsonl", "cwd": "c"})
+    hooks.run("session-start", payload)
+    hooks.run("session-end", payload)
+    assert sessions.pending() == []
+    assert not (sessions.sessions_dir() / "active" / "s9.json").exists()
+
+
+def test_pull_is_skipped_while_another_session_pulls(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (sandbox / "brain" / ".git").mkdir(parents=True)
+    calls: list[list[str]] = []
+
+    def fake_run(cmd: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        calls.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    lock = sandbox / ".spok1" / "state" / "pull.lock"
+    lock.parent.mkdir(parents=True)
+    lock.touch()  # another session holds the lock
+    hooks._pull_brain()  # pyright: ignore[reportPrivateUsage]
+    assert calls == []
+    lock.unlink()
+    hooks._pull_brain()  # pyright: ignore[reportPrivateUsage]
+    assert len(calls) == 1 and calls[0][-3:] == ["pull", "--ff-only", "--quiet"]
+    assert not lock.exists()  # released after pulling
 
 
 def test_hooks_skip_spok1s_own_claude_runs(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -315,3 +350,10 @@ def test_detects_claudeai_mem0_connector() -> None:
     listing = "claude.ai Mem0: https://mcp.mem0.ai/mcp - ✔ Connected\nspok1-notify: x - ✔ Connected"
     assert install.has_claudeai_mem0(listing)
     assert not install.has_claudeai_mem0("mem0: https://mcp.mem0.ai/mcp (HTTP) - ! Needs auth")
+
+
+def test_short_title_cuts_at_word_boundary() -> None:
+    assert capture.short_title("short") == "short"
+    long = "spok1: open-source release, CI setup, and Phase 1 brain, hooks and installer build"
+    out = capture.short_title(long)
+    assert len(out) <= 80 and out.endswith("installer…")

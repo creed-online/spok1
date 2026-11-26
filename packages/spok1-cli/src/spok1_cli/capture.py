@@ -81,6 +81,15 @@ def _importance(value: object) -> int:
         return 3
 
 
+def short_title(title: str, limit: int = 80) -> str:
+    """Trim a title to `limit` characters at a word boundary."""
+    title = " ".join(title.split())
+    if len(title) <= limit:
+        return title
+    cut = title[: limit - 1].rsplit(" ", 1)[0].rstrip(",;:-")
+    return cut + "…"
+
+
 def _dump_yaml(data: dict[str, Any]) -> str:
     dump = cast(Callable[..., str], getattr(yaml, "safe_dump"))  # noqa: B009 - stub has an Unknown
     return dump(data, sort_keys=False, allow_unicode=True)
@@ -123,7 +132,7 @@ def render_episode(
 
     parts = [
         "---\n" + _dump_yaml(front) + "---\n",
-        f"# {str(data.get('title') or 'Session')[:80]}\n",
+        f"# {short_title(str(data.get('title') or 'Session'))}\n",
         section("Goal", str(data.get("goal") or "")),
         section("Plan", str(data.get("plan") or "")),
         section("What happened", str(data.get("what_happened") or "")),

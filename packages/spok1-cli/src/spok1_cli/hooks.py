@@ -9,10 +9,13 @@ Rules for every hook here:
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
+import time
 import traceback
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any, cast
 
 from spok1_cli import claude_cli, sessions
@@ -70,6 +73,12 @@ def _pull_brain() -> None:
     brain = paths.brain_dir()
     if not (brain / ".git").exists():
         return
+    # Concurrent `git pull`s in one repo clobber each other's FETCH_HEAD ("Cannot
+    # fast-forward to multiple branches"). If another session is pulling, skip: it
+    # brings in the same changes.
+    lock = paths.state_dir() / "pull.lock"
+    if not _try_lock(lock, stale_after=PULL_TIMEOUT * 3):
+        return
     try:
         result = subprocess.run(  # noqa: S603 - fixed argv
             ["git", "-C", str(brain), "pull", "--ff-only", "--quiet"],  # noqa: S607
@@ -82,6 +91,21 @@ def _pull_brain() -> None:
             _log(f"session-start: brain pull failed (continuing): {result.stderr.strip()[:200]}")
     except (OSError, subprocess.SubprocessError) as exc:
         _log(f"session-start: brain pull error (continuing): {exc}")
+    finally:
+        lock.unlink(missing_ok=True)
+
+
+def _try_lock(lock: Path, stale_after: float) -> bool:
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        if lock.exists() and time.time() - lock.stat().st_mtime > stale_after:
+            lock.unlink(missing_ok=True)
+        os.close(os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+    except FileExistsError:
+        return False
+    except OSError:
+        return False
+    return True
 
 
 def session_start(data: dict[str, Any]) -> None:
@@ -100,9 +124,14 @@ def session_end(data: dict[str, Any]) -> None:
     session_id = str(data.get("session_id") or "")
     if not session_id:
         return
+    transcript_path = str(data.get("transcript_path") or "")
+    if not transcript_path or not Path(transcript_path).is_file():
+        # e.g. `claude mcp list` / `claude auth status`: no conversation, nothing to capture
+        sessions.forget(session_id)
+        return
     sessions.mark_ended(
         session_id,
-        str(data.get("transcript_path") or ""),
+        transcript_path,
         str(data.get("cwd") or ""),
         str(data.get("reason") or ""),
     )

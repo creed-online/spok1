@@ -82,6 +82,11 @@ def mark_ended(session_id: str, transcript_path: str, cwd: str, reason: str) -> 
     active.unlink(missing_ok=True)
 
 
+def forget(session_id: str) -> None:
+    """Drop a session that has nothing to capture."""
+    _path("active", session_id).unlink(missing_ok=True)
+
+
 def promote_stale_active(now: float | None = None) -> int:
     """Move crashed sessions (no SessionEnd, transcript idle > 2 h) to pending."""
     now = now or time.time()

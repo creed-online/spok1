@@ -114,7 +114,12 @@ class PathContext:
     def brain_append_roots(self) -> list[str]:
         """Brain paths any session may add to (PRD §4: inbox/, jobs/, feedback.md)."""
         brain = self.n("~/brain")
-        return [brain + "/inbox", brain + "/jobs", brain + "/feedback.md"]
+        return [
+            brain + "/inbox",
+            brain + "/jobs",
+            brain + "/feedback.md",
+            self.n("~/.spok1/plans"),  # the manager's plan files (run-request step 3)
+        ]
 
     def in_worktree(self, path: str) -> bool:
         """Inside an agent worktree: the session's own, or any `<repo>/.claude/worktrees/<name>/`

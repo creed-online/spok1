@@ -34,6 +34,7 @@ if ! command -v bun >/dev/null; then
 fi
 bun --version
 grep -q '.bun/bin' ~/.bashrc || echo 'export PATH="$HOME/.local/bin:$HOME/.bun/bin:$PATH"' >> ~/.bashrc
+grep -q 'spok1/.venv/bin' ~/.bashrc || echo 'export PATH="$PATH:$HOME/spok1/.venv/bin"' >> ~/.bashrc
 
 echo "== spok1 workspace"
 git -C "$ROOT" pull -q --ff-only

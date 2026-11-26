@@ -309,6 +309,8 @@ TOOL_CASES: list[tuple[str, dict[str, Any], str, Tier]] = [
     ("Write", {"file_path": "/tmp/x.txt"}, POSIX_PROJ, T0),
     ("Write", {"file_path": "/home/u/brain/inbox/laptop-2026-11-26-abc.md"}, POSIX_PROJ, T0),
     ("Edit", {"file_path": "/home/u/brain/feedback.md"}, POSIX_PROJ, T0),
+    ("Write", {"file_path": "/home/u/.spok1/plans/20261126-1523-x.yaml"}, POSIX_PROJ, T0),
+    ("Write", {"file_path": "/home/u/.spok1/state/sessions/x.json"}, POSIX_PROJ, T2),
     ("NotebookEdit", {"notebook_path": "/home/u/proj/nb.ipynb"}, POSIX_PROJ, T0),
     ("Write", {"file_path": "/etc/hosts"}, POSIX_PROJ, T2),
     ("Edit", {"file_path": "/home/u/brain/profile.md"}, POSIX_PROJ, T2),

@@ -3,7 +3,7 @@
 # Started by claude-manager.service (as spok1). Watch it: ssh spok1@spok1-vm, tmux attach -t manager
 # (detach: Ctrl+b then d). --foreground runs it in this terminal instead (for a first test).
 set -euo pipefail
-export PATH="$HOME/.local/bin:$HOME/.bun/bin:$PATH"
+export PATH="$HOME/.local/bin:$HOME/.bun/bin:$PATH:$HOME/spok1/.venv/bin"  # spok1 (audit-plan …) last
 unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_CODE_OAUTH_TOKEN  # manager uses /login only
 # The Discord plugin runs `bun install` on every start; on the 1 GB VM that can exceed Claude
 # Code's default MCP startup wait, and the channel then shows as failed. Give it 2 minutes.

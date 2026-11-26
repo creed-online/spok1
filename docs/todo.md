@@ -158,6 +158,8 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 - [ ] `vm/bootstrap.sh`: Claude Code, plugins, brain clone, links, uv workspace install
 - [ ] You: run `/login` on the VM over SSH
 - [ ] You: create the Discord bot application and put its token in `vm/.env` on the VM
+- [ ] You: create a **separate Mem0 API key named `spok1-vm`** (in the new Mem0 account) and paste it into the VM's `~/.config/agent/.env` over SSH. Never put it in cloud-init. The laptop key (kept in the laptop `.env`) stays as a spare.
+- [ ] Add the hosted Mem0 MCP on the VM with that key as a bearer token, set `ENABLE_CLAUDEAI_MCP_SERVERS=false` for agentd jobs, and check that a VM job and the laptop see the same memories
 - [ ] Install the Discord channel plugin, pair your account, allow only your user ID
 - [ ] agentd bootstrap step: create the HQ channels (`#command`, `#approvals`, `#alerts`, `#daily-digest`, `#learning`) and their webhooks
 - [ ] `vm/manager-start.sh` + `claude-manager.service` (tmux, `Restart=always`)

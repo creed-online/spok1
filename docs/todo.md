@@ -36,6 +36,7 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 | 2026-11-26 | Phase 2: policy in admin-only `guardrails.toml` (1a); guard installed via **managed settings** (2a); T0/T1 **pass through** so the guard can only make things stricter (3a); private `spok1-sandbox` for tests (4). Agent teams not adopted. |
 | 2026-11-26 | Guard latency gate: **keep Python** (owner, option a). Linux 19 ms p95, Windows CI 51 ms, this laptop 141 ms. No Rust port for now. |
 | 2026-11-26 | Agents stop at a local commit; only the manager pushes and opens PRs, after review (owner, during /new-agent). Coders make their own worktree inside the target repo (`isolation: worktree` worktrees the session repo instead). |
+| 2026-11-26 | Phase 3 VM: **Standard_B2pts_v2** (2 ARM vCPU, 1 GB, free tier) in centralindia, ≈ $6.65/month. B2s isn't available on the student subscription. One agent at a time on the VM; parallel work on the laptop. No Docker on the VM. |
 | 2026-11-26 | Docker stays: rootless Docker Engine on the VM for project workloads only (test DBs, project services, builds). The core runtime stays on systemd + uv, agents never get the Docker socket, and every `docker` command goes through the guard. |
 
 ---
@@ -149,11 +150,15 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 
 **Check first:** current Azure pricing for B2s, Standard SSD 32 GB and a public IP, plus Tailscale setup on Ubuntu 24.04.
 
-- [ ] `infra/cloud-init.yaml`: packages (git, gh, node, uv, tmux, tailscale, ffmpeg), 4 GB swap, non-root user
-- [ ] Rootless Docker for the non-root user (not in the `docker` group); check that `docker run hello-world` works without root
-- [ ] `infra/azure-create.sh`: resource group, VNet, NSG with **no inbound rules**, Ubuntu 24.04 B2s VM, auto-shutdown off (safe to rerun)
-- [ ] `infra/azure-destroy.sh` (asks for confirmation; T3 when run)
-- [ ] Show you the cost estimate, get approval (T2), then run it
+- [x] Check pricing and the subscription (2026-11-26): "Azure for Students" (prepaid credit; allowed regions incl. centralindia); B2s is **not available** to it; free tier gives 750 h/month **per size** of B1s, B2ats_v2 (used by `tgma-vm`) and B2pts_v2 (unused)
+- [x] Decision: **option A**, `Standard_B2pts_v2` (2 ARM vCPU, 1 GB) on free hours, ≈ $6.65/month (disk + IP). Agents run one at a time on the VM; parallel work runs on the laptop. Resize to B2pls_v2 (4 GB) with one command if memory is too tight
+- [x] `infra/cloud-init.yaml`: Ubuntu 24.04 arm64, packages (git, gh, node, tmux, sqlite3, ffmpeg, unattended-upgrades), Tailscale (not joined), uv for `spok1`, 4 GB swap, `spok1` user with **no sudo**, `azureuser` break-glass admin, no secrets
+- [x] No Docker on the VM (1 GB RAM); it stays available on the laptop
+- [x] `infra/azure-create.sh`: dry run by default, `--yes` to create; resource group `rg-spok1` (tagged), VNet, NSG with **no inbound rules** (`--nsg-rule NONE`), Standard static public IP (outbound only), 32 GB Standard SSD, auto-shutdown off, waits for cloud-init, joins Tailscale with a one-time key you paste, best-effort $20 budget alert. Safe to rerun
+- [x] `infra/azure-destroy.sh`: only deletes a group tagged `project=spok1`, after you type its name (T3: you run it)
+- [x] Tests: cloud-init valid and secret-free, no inbound rules, destroy is scoped; shellcheck in CI
+- [ ] You: a Tailscale account, with Tailscale on your laptop (and phone)
+- [ ] You: dry run, then `infra/azure-create.sh --yes` (T2: costs money)
 
 **✅ Checkpoint 3**
 - [ ] `ssh` over Tailscale works as the non-root user

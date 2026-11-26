@@ -30,7 +30,7 @@ You are my DevOps and AI-agent engineer. Build and document a reproducible syste
 | Azure subscription | <<SUBSCRIPTION_ID or "use current az account">> |
 | Region | <<centralindia \| southindia \| ...>> |
 | Resource group | <<rg-claude-agent>> |
-| VM size | Standard_B2s (2 vCPU / 4 GB) plus a 4 GB swap file. Move to B2ms only if memory runs out. |
+| VM size | **Standard_B2pts_v2** (2 ARM vCPU / 1 GB, free-tier hours) plus a 4 GB swap file (decided 2026-11-26: B2s isn't offered to the student subscription). Agents run one at a time on the VM; parallel work runs on the laptop. Resize to B2pls_v2 (4 GB) if memory runs out. |
 | SSH access | Tailscale (no inbound ports) |
 | Primary laptop | Windows 11 (Git Bash + PowerShell). Other machines: macOS/Linux supported. |
 | Claude plan | Claude Max (subscription only) |

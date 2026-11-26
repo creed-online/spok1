@@ -1,0 +1,70 @@
+#cloud-config
+# spok1 VM base setup (Phase 3). Ubuntu 24.04 LTS, arm64 (Standard_B2pts_v2, 2 vCPU, 1 GB).
+#
+# NO SECRETS IN THIS FILE: Azure "custom data" can be read by anyone with access to the
+# subscription. Tailscale is installed here but joined later (azure-create.sh, one-time key).
+#
+# Users:
+#   azureuser  admin, sudo; created by `az vm create`, key-only. Break-glass only.
+#   spok1      runs everything (manager, agentd, agents). NO sudo.
+# Option A (decided 2026-11-26): 1 GB RAM, so no Docker on the VM; a 4 GB swap file instead.
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - git
+  - tmux
+  - curl
+  - ca-certificates
+  - gnupg
+  - jq
+  - sqlite3
+  - ffmpeg
+  - nodejs
+  - unattended-upgrades
+  - apt-listchanges
+
+users:
+  - default
+  - name: spok1
+    gecos: spok1 agent runtime (no sudo)
+    shell: /bin/bash
+    lock_passwd: true
+
+write_files:
+  - path: /etc/sysctl.d/90-spok1.conf
+    content: |
+      # 1 GB RAM + 4 GB swap: swap a bit earlier and keep file caches smaller
+      vm.swappiness = 60
+      vm.vfs_cache_pressure = 150
+  - path: /etc/systemd/journald.conf.d/90-spok1.conf
+    content: |
+      [Journal]
+      SystemMaxUse=300M
+  - path: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+  - path: /etc/ssh/sshd_config.d/90-spok1.conf
+    content: |
+      # No inbound port is open anyway (NSG); access is through Tailscale.
+      PasswordAuthentication no
+      PermitRootLogin no
+
+runcmd:
+  # 4 GB swap file (idempotent)
+  - [bash, -c, 'if [ ! -f /swapfile ]; then fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile && echo "/swapfile none swap sw 0 0" >> /etc/fstab; fi']
+  - [sysctl, --system]
+  # GitHub CLI (official apt repo, arm64)
+  - [bash, -c, 'curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /usr/share/keyrings/githubcli-archive-keyring.gpg && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list && apt-get update && apt-get install -y gh']
+  # Tailscale (official installer; joined later with a one-time key)
+  - [bash, -c, 'curl -fsSL https://tailscale.com/install.sh | sh']
+  - [systemctl, enable, --now, tailscaled]
+  # uv for the spok1 user (official installer, no root)
+  - [sudo, -u, spok1, -H, bash, -c, 'curl -LsSf https://astral.sh/uv/install.sh | sh']
+  # let spok1's services keep running when nobody is logged in
+  - [loginctl, enable-linger, spok1]
+  - [bash, -c, 'echo "spok1 cloud-init done $(date -u +%FT%TZ)" > /var/log/spok1-cloud-init.done']
+
+final_message: "spok1 base setup finished after $UPTIME seconds"

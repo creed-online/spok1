@@ -64,14 +64,14 @@ The full list of technologies spok1 uses. The spec is [prd.md](prd.md), the diag
 
 | What | Tech | Status |
 |---|---|---|
-| Cloud | **Azure**: Standard_B2s VM (2 vCPU / 4 GB + 4 GB swap), Standard SSD 32 GB, VNet + NSG with no inbound rules | Decided |
+| Cloud | **Azure**: Standard_B2pts_v2 VM (2 ARM vCPU / 1 GB + 4 GB swap, free-tier hours), Ubuntu 24.04 arm64, Standard SSD 32 GB, VNet + NSG with no inbound rules, ≈ $6.65/month | Decided |
 | Operating systems | **Ubuntu 24.04 LTS** (VM), **Windows 11** (primary laptop), macOS and Linux supported | Decided |
 | Provisioning | **Azure CLI** scripts + **cloud-init** | Decided |
 | Process management | **systemd** (`claude-manager.service`, `agentd.service`, backup timer) + **tmux** | Decided |
 | Private network | **Tailscale** for SSH and Mission Control | Decided |
 | Uptime monitoring | **healthchecks.io** dead-man switch (free tier) | Decided |
 | Other tools on the VM | **git**, **gh** CLI, **Node.js** (runtime for Claude Code), **ffmpeg** | Decided |
-| Containers | **Docker Engine in rootless mode**, installed on the VM. It's for project workloads only: test databases (for example Postgres for the guard's live `DROP TABLE` check), services a project's code needs, and reproducible builds. The core runtime (manager, agentd) stays on systemd + uv. Agents never get the Docker socket or the `docker` group (that group is root-equivalent). Every `docker` command goes through the guard: `run`, `build` and `pull` are T2; `rm`, `rmi`, `prune` and volume deletion are T3. | Decided |
+| Containers | **Not on the VM for now** (1 GB RAM, decided 2026-11-26); on the laptop, and on the VM after a resize to 4 GB. **Docker Engine in rootless mode**: It's for project workloads only: test databases (for example Postgres for the guard's live `DROP TABLE` check), services a project's code needs, and reproducible builds. The core runtime (manager, agentd) stays on systemd + uv. Agents never get the Docker socket or the `docker` group (that group is root-equivalent). Every `docker` command goes through the guard: `run`, `build` and `pull` are T2; `rm`, `rmi`, `prune` and volume deletion are T3. | Decided |
 
 ## Messaging and access
 

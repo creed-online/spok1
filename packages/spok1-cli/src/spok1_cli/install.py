@@ -212,6 +212,24 @@ def _claude(claude: str, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+def parse_subscription(status_json: str) -> str:
+    """`subscriptionType` from `claude auth status` JSON ('' if missing / unparseable)."""
+    try:
+        data: object = json.loads(status_json)
+    except ValueError:
+        return ""
+    if not isinstance(data, dict):
+        return ""
+    return str(cast(dict[str, object], data).get("subscriptionType") or "").lower()
+
+
+def subscription_type(claude: str) -> str:
+    try:
+        return parse_subscription(_claude(claude, "auth", "status").stdout)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
 # ── main ───────────────────────────────────────────────────────────────
 
 
@@ -248,6 +266,14 @@ def _run(plan: Plan, brain_repo: str | None, machine: str | None) -> None:
     if shutil.which("git") is None:
         raise InstallError("git not found on PATH")
     plan.note(f"· claude: {claude}")
+    plan_type = subscription_type(claude)
+    if plan_type != "max":
+        plan.note(
+            f"! signed in to a '{plan_type or 'unknown'}' plan, not Max. spok1 is built for Max: "
+            "run `claude auth logout`, then `claude auth login` with your Max account."
+        )
+    else:
+        plan.note("· plan: max")
 
     # 2. brain
     if (brain / ".git").exists():

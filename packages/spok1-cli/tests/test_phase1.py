@@ -302,3 +302,10 @@ def test_install_refuses_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_repo_root() -> None:
     assert install.repo_root() == ROOT
+
+
+def test_parse_subscription() -> None:
+    assert install.parse_subscription('{"subscriptionType": "max", "email": "x"}') == "max"
+    assert install.parse_subscription('{"subscriptionType": "Pro"}') == "pro"
+    assert install.parse_subscription("not json") == ""
+    assert install.parse_subscription("[]") == ""

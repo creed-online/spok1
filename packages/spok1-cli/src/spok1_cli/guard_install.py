@@ -236,9 +236,18 @@ def _load_json(path: Path) -> dict[str, Any]:
     return cast(dict[str, Any], data)
 
 
+def _sandbox_env() -> dict[str, str]:
+    """Run test calls with a throwaway home, so they don't land in the real audit log."""
+    import tempfile
+
+    home = tempfile.mkdtemp(prefix="spok1-guard-test-")
+    return {**os.environ, "USERPROFILE": home, "HOME": home}
+
+
 def self_test(python: Path, runner: Path, policy: Path) -> list[str]:
     """Run the installed hook on known inputs. Returns problems (empty = OK)."""
     problems: list[str] = []
+    env = _sandbox_env()
     cases = [
         ({"command": "git status"}, None),
         ({"command": "git push origin main"}, "ask"),
@@ -256,6 +265,7 @@ def self_test(python: Path, runner: Path, policy: Path) -> list[str]:
             text=True,
             timeout=30,
             check=False,
+            env=env,
         )
         got = None
         if result.returncode != 0:
@@ -279,11 +289,12 @@ def bench(python: Path, runner: Path, policy: Path, runs: int = 40) -> tuple[flo
         }
     )
     args = [str(python), "-I", "-S", str(runner), "--policy", str(policy)]
-    subprocess.run(args, input=payload, capture_output=True, text=True, check=False)  # noqa: S603
+    env = _sandbox_env()
+    subprocess.run(args, input=payload, capture_output=True, text=True, check=False, env=env)  # noqa: S603
     times: list[float] = []
     for _ in range(runs):
         start = time.perf_counter()
-        subprocess.run(args, input=payload, capture_output=True, text=True, check=False)  # noqa: S603
+        subprocess.run(args, input=payload, capture_output=True, text=True, check=False, env=env)  # noqa: S603
         times.append((time.perf_counter() - start) * 1000)
     return statistics.median(times), statistics.quantiles(times, n=20)[18]
 

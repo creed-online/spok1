@@ -119,7 +119,7 @@ if [ "$YES" = 1 ]; then
 fi
 
 # ── budget alert (best effort; not every subscription type supports it) ──
-step "budget alert: email at 80% of \$20/month (free)"
+step "budget: \$20/month (free); add the email alert in the portal (Cost Management → Budgets)"
 if [ "$YES" = 1 ]; then
   az consumption budget create --budget-name spok1-monthly --amount 20 --category cost \
     --time-grain monthly --start-date "$(date -u +%Y-%m-01)" --end-date "$(date -u -d '+2 years' +%Y-%m-01 2>/dev/null || date -u -v+2y +%Y-%m-01)" \

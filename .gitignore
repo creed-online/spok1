@@ -17,6 +17,8 @@ service-account*.json
 vault/
 *.vault
 .claude/settings.local.json
+*.local.yaml
+*.local.yml
 
 # ── Databases (learning.db, project.db) ─────────────────
 *.db

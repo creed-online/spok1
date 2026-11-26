@@ -23,6 +23,8 @@ You are my DevOps and AI-agent engineer. Build and document a reproducible syste
 
 ## My details (fill in)
 
+> **This repo is public (open source, Apache-2.0).** Don't fill in this table here. Copy it into `config/my-details.local.yaml`, which is gitignored, and put your real values there. Only empty templates are committed.
+
 | Item | Value |
 |---|---|
 | Azure subscription | <<SUBSCRIPTION_ID or "use current az account">> |

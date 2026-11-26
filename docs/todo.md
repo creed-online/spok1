@@ -32,6 +32,7 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 | 2026-11-26 | The Hermes design was dropped; v4 of the PRD is the only spec. |
 | 2026-11-26 | **Python only**: a uv workspace with no Rust. The guard is written in plain Python with only the standard library. Phase 2 measures its latency, and only if it fails the gate (p95 over 100 ms) is the guard ported to a standalone Rust binary. |
 | 2026-11-26 | Tech stack approved ([tech-stack.md](tech-stack.md)): pyright, GitHub Actions, asyncio, httpx, pydantic + PyYAML, croniter, sqlite-vec (only if needed), numpy, cryptography, the MCP Python SDK, Typer, FastAPI + Jinja2 + htmx + Chart.js, imaplib / the Gmail API. |
+| 2026-11-26 | **spok1 is open source**: public repo github.com/creed-online/spok1 under **Apache-2.0** (copyright Veldray). Personal data never goes into it: the brain is a separate private repo, personal details live in gitignored `*.local.yaml`, and secrets live in `.env` / the vault. |
 | 2026-11-26 | Docker stays: rootless Docker Engine on the VM for project workloads only (test DBs, project services, builds). The core runtime stays on systemd + uv, agents never get the Docker socket, and every `docker` command goes through the guard. |
 
 ---
@@ -41,7 +42,7 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 - [x] Fix the PRD's inconsistencies: section numbering, `karta`, phase references, package layout
 - [x] Write `docs/architecture.md`
 - [x] Choose the language: Python only
-- [ ] Fill in every `<<PLACEHOLDER>>` in the PRD's "My details" table
+- [ ] Fill in every `<<PLACEHOLDER>>` from the PRD's "My details" table in **`config/my-details.local.yaml`** (gitignored). The repo is public, so never put real values in the PRD.
   - [ ] Azure subscription, region, resource group
   - [ ] Mem0 `user_id`
   - [ ] Brain repo URL (private)
@@ -49,9 +50,13 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
   - [ ] Timezone and quiet hours
   - [ ] Repos the agents may work on
   - [ ] T3 cost threshold (default ₹500), report times (EOD 19:00, weekly Mon 09:00)
-- [ ] `git init` this repo and add a `.gitignore` (`.env`, `*.env`, `*.db`, key-bearing JSON, `.venv/`)
-- [ ] Create the private GitHub repo for this infra code and push it (T2)
-- [ ] Add `README.md` (what spok1 is, plus the quickstart outline) and `NOTICE`
+- [x] `git init` this repo and add a `.gitignore` (`.env`, `*.env`, `*.db`, key-bearing JSON, `.venv/`)
+- [x] Push to the public open-source repo: github.com/creed-online/spok1
+- [x] Add `LICENSE` (Apache-2.0), `NOTICE`, `README.md` and `.gitattributes` (LF for `.sh`)
+- [x] Gitignore `*.local.yaml`
+- [ ] Add `config/my-details.example.yaml` (empty values)
+- [ ] Add `SECURITY.md` (how to report a vulnerability privately) and `CONTRIBUTING.md`
+- [ ] Turn on GitHub secret scanning + push protection, and Dependabot
 - [ ] Set up the uv workspace: root `pyproject.toml` with empty `packages/spok1-*` skeletons, ruff, pytest and Python 3.12
 
 ## Phase 1: The brain on any computer

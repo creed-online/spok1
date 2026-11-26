@@ -1,0 +1,13 @@
+spok1
+Copyright 2026 Veldray
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Third-party attributions
+------------------------
+Patterns and ideas are borrowed from the following MIT-licensed projects
+(see docs/prd.md, "Prior art and borrowed patterns"). If any of their code is
+adapted, its copyright notice and MIT license text are added below.
+
+- Clerk (mekenthompson/clerk), MIT License
+- Praktor (mtzanidakis/praktor), MIT License

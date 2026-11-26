@@ -1,0 +1,27 @@
+version: 2
+
+updates:
+  # Python dependencies (uv workspace, uv.lock)
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      dev-tools:
+        patterns: ["ruff", "pyright", "pytest"]
+    commit-message:
+      prefix: "deps"
+
+  # GitHub Actions used in .github/workflows (pinned to SHAs)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci"

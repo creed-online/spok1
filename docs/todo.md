@@ -58,8 +58,8 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 - [x] Add `SECURITY.md` (how to report a vulnerability privately) and `CONTRIBUTING.md`
 - [x] Turn on GitHub secret scanning + push protection, Dependabot alerts + security updates, and private vulnerability reporting
 - [x] Set up the uv workspace: root `pyproject.toml` with empty `packages/spok1-*` skeletons, ruff, pyright (strict), pytest and Python 3.12. `spok1-guard` has no dependencies at all, not even `spok1-core`.
-- [ ] Add `.github/dependabot.yml` (`uv` + `github-actions` ecosystems), once `pyproject.toml` and the CI workflow exist
-- [ ] Add the CI workflow (`.github/workflows/ci.yml`): ruff, pyright and pytest on Ubuntu and Windows
+- [x] Add `.github/dependabot.yml` (`uv` + `github-actions` ecosystems, weekly, grouped)
+- [x] Add the CI workflow (`.github/workflows/ci.yml`): ruff, pyright and pytest on Ubuntu and Windows, with actions pinned to SHAs
 
 ## Phase 1: The brain on any computer
 

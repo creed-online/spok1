@@ -31,6 +31,10 @@ DEFAULT_MCP_TIERS: tuple[tuple[str, str], ...] = (
     ("mcp__*mem0*__delete*", "T3"),
     ("mcp__*mem0*__*", "T0"),  # Mem0 reads and writes are T0 (PRD §6.1)
     ("mcp__spok1-notify__notify", "T0"),
+    # The Discord channel only reaches allow-listed users in the owner's private server:
+    # replies, reactions and reads are "Discord messages to me" (PRD §6.1: T0).
+    ("mcp__plugin_discord_discord__create_thread", "T1"),
+    ("mcp__plugin_discord_discord__*", "T0"),
     ("mcp__claude-vscode__*", "T0"),
 )
 

@@ -9,7 +9,10 @@ unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_CODE_OAUTH_TOKEN  # manager 
 # Code's default MCP startup wait, and the channel then shows as failed. Give it 2 minutes.
 export MCP_TIMEOUT=120000
 
-CMD="claude --channels plugin:discord@claude-plugins-official"
+# Sonnet for the manager's own chat/routing (fast); agents use the model their task needs
+# (reviewer and agent-architect: opus), and "use opus for this" routes a task to opus.
+MODEL="${SPOK1_MANAGER_MODEL:-sonnet}"
+CMD="claude --model $MODEL --channels plugin:discord@claude-plugins-official"
 mkdir -p "$HOME/work"
 cd "$HOME/work"   # the manager's project root (the guard treats only this folder as "the project")
 

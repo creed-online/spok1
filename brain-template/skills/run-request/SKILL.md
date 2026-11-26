@@ -48,7 +48,7 @@ Run `spok1 audit-plan <plan.yaml>`, or `--write` to save the revised plan.
 
 ## 5. Dispatch
 - Use the Agent tool with `subagent_type` set to the task's agent. Launch the tasks of one group **in the same message**, so they run in parallel. Claude Code caps this at 3.
-- Give each coder its own task. They each get a separate worktree automatically.
+- Give each coder its own task, the **absolute repo path** and a unique slug. Each coder creates its own worktree at `<repo>/.claude/worktrees/<slug>` on branch `agent/<slug>`. (Don't rely on `isolation: worktree`: it worktrees the session's repo, not the target.)
 - The guard checks every tool call. If it **asks**, the owner sees the prompt. If it **refuses**, don't look for a way around it. Note it for the report.
 
 ## 6. Review

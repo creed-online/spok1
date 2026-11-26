@@ -234,6 +234,9 @@ BASH_CASES: list[tuple[str, str, Tier]] = [
     # Git Bash on the Windows laptop
     ("rm -rf /c/Users/U/other", WIN_PROJ, T3),
     ("rm -rf build", WIN_WT, T0),
+    # a coder's worktree inside another repo counts; the worktrees folder itself does not
+    ("rm -rf C:/Users/U/sandbox/repo/.claude/worktrees/slug/dist", WIN_PROJ, T0),
+    ("rm -rf C:/Users/U/sandbox/repo/.claude/worktrees", WIN_PROJ, T3),
     ("rm -rf C:/Users/U/proj/.claude/worktrees/t1/dist", WIN_WT, T0),
     ("cat /c/Users/U/.config/agent/.env", WIN_PROJ, F),
 ]

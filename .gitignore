@@ -1,3 +1,6 @@
+# ── Agent worktrees ─────────────────────────────────────
+.claude/worktrees/
+
 # ── Secrets (never commit) ──────────────────────────────
 .env
 *.env

@@ -117,8 +117,18 @@ class PathContext:
         return [brain + "/inbox", brain + "/jobs", brain + "/feedback.md"]
 
     def in_worktree(self, path: str) -> bool:
+        """Inside an agent worktree: the session's own, or any `<repo>/.claude/worktrees/<name>/`
+        (coders create worktrees inside the target repo, which may differ from the session cwd)."""
+        p = self.n(path)
         wt = self.worktree_root()
-        return bool(wt and is_within(self.n(path), wt))
+        if wt and is_within(p, wt):
+            return True
+        marker = "/.claude/worktrees/"
+        idx = p.find(marker)
+        if idx == -1:
+            return False
+        name = p[idx + len(marker) :].split("/", 1)[0]
+        return bool(name) and name not in (".", "..")
 
     def in_scratch(self, path: str) -> bool:
         p = self.n(path)

@@ -18,10 +18,26 @@
       "Bash(git push -f*)",
       "Bash(rm -rf /)",
       "Bash(rm -rf ~)"
-    ]
+    ],
+    "allow": [
+      "Bash",
+      "Edit",
+      "Write",
+      "NotebookEdit",
+      "Read",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "WebSearch",
+      "mcp__plugin_discord_discord__*",
+      "mcp__spok1-notify__*",
+      "mcp__claude_ai_Mem0__*"
+    ],
+    "defaultMode": "default",
+    "disableAutoMode": "disable"
   },
   "env": {
-    "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS": "3"
+    "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS": "1"
   },
   "hooks": {
     "PreToolUse": [

@@ -39,6 +39,18 @@ def test_committed_reference_settings_match_render() -> None:
     """claude/managed-settings.*.json are generated: keep them in sync with render()."""
     root = gi.repo_root() / "claude"
     for name, platform in (("laptop", "win32"), ("vm", "linux")):
-        expected = gi.render({}, *gi.reference_paths(platform))
+        expected = gi.render({}, *gi.reference_paths(platform), profile=name)
         committed = json.loads((root / f"managed-settings.{name}.json").read_text(encoding="utf-8"))
         assert committed == expected, f"regenerate claude/managed-settings.{name}.json"
+
+
+def test_vm_profile() -> None:
+    vm = gi.render({}, "p", "r/run_guard.py", "x", profile="vm")
+    perms = vm["permissions"]
+    assert "Bash" in perms["allow"] and perms["disableAutoMode"] == "disable"
+    assert perms["defaultMode"] == "default" and perms["disableBypassPermissionsMode"] == "disable"
+    assert vm["env"]["CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS"] == "1"
+    assert vm["hooks"]["PreToolUse"][0]["hooks"][0]["onFailure"] == "block"  # the guard stays
+    laptop = gi.render({}, "p", "r/run_guard.py", "x")
+    assert "allow" not in laptop["permissions"]  # the laptop keeps Claude Code's own prompts
+    assert gi.remove_from(vm) == {}

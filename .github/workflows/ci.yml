@@ -48,7 +48,7 @@ jobs:
 
       - name: Shell scripts
         if: runner.os == 'Linux'
-        run: shellcheck --severity=warning infra/*.sh laptop/install.sh
+        run: shellcheck --severity=warning infra/*.sh vm/*.sh laptop/install.sh
 
       - name: Guard latency (report)
         run: uv run pytest packages/spok1-guard/tests/test_hook.py::test_latency_gate -s -q

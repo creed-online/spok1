@@ -159,7 +159,29 @@ def _is_spok1_group(group: object) -> bool:
     return False
 
 
-def render(existing: dict[str, Any], python: str, runner: str, policy: str) -> dict[str, Any]:
+# VM profile (owner decision, Phase 4): nobody watches the VM's terminal, so Claude Code's own
+# prompts would flood the phone. Its rules allow these tools, and the guard is the approval layer:
+# T0/T1 run, T2 "ask" goes to the owner's phone (Discord permission relay), T3/FORBIDDEN deny.
+VM_ALLOW = [
+    "Bash",
+    "Edit",
+    "Write",
+    "NotebookEdit",
+    "Read",
+    "Glob",
+    "Grep",
+    "WebFetch",
+    "WebSearch",
+    "mcp__plugin_discord_discord__*",
+    "mcp__spok1-notify__*",
+    "mcp__claude_ai_Mem0__*",
+]
+VM_MAX_SUBAGENTS = "1"  # 1 GB RAM (option A): one sub-agent at a time
+
+
+def render(
+    existing: dict[str, Any], python: str, runner: str, policy: str, profile: str = "laptop"
+) -> dict[str, Any]:
     """Managed settings with spok1's guard merged in (other keys and hooks are kept)."""
     settings: dict[str, Any] = json.loads(json.dumps(existing))
     perms = cast(dict[str, Any], settings.setdefault("permissions", {}))
@@ -168,6 +190,12 @@ def render(existing: dict[str, Any], python: str, runner: str, policy: str) -> d
     perms["deny"] = deny + [r for r in DENY_RULES if r not in deny]
     env = cast(dict[str, Any], settings.setdefault("env", {}))
     env["CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS"] = MAX_SUBAGENTS
+    if profile == "vm":
+        allow = [str(r) for r in cast(list[object], perms.get("allow") or [])]
+        perms["allow"] = allow + [r for r in VM_ALLOW if r not in allow]
+        perms["defaultMode"] = "default"
+        perms["disableAutoMode"] = "disable"  # auto mode would approve by classifier, not guard
+        env["CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS"] = VM_MAX_SUBAGENTS
     hooks = cast(dict[str, Any], settings.setdefault("hooks", {}))
     groups = [
         g for g in cast(list[object], hooks.get("PreToolUse") or []) if not _is_spok1_group(g)
@@ -194,6 +222,12 @@ def remove_from(existing: dict[str, Any]) -> dict[str, Any]:
         if not perms["deny"]:
             perms.pop("deny")
     perms.pop("disableBypassPermissionsMode", None)
+    if "allow" in perms:
+        perms["allow"] = [r for r in cast(list[object], perms["allow"]) if r not in VM_ALLOW]
+        if not perms["allow"]:
+            perms.pop("allow")
+    for key in ("defaultMode", "disableAutoMode"):
+        perms.pop(key, None)
     if not perms:
         settings.pop("permissions", None)
     env = cast(dict[str, Any], settings.get("env") or {})
@@ -302,7 +336,7 @@ def bench(python: Path, runner: Path, policy: Path, runs: int = 40) -> tuple[flo
 # ── commands ───────────────────────────────────────────────────────────
 
 
-def install(dry_run: bool, update_policy: bool) -> int:
+def install(dry_run: bool, update_policy: bool, profile: str = "laptop") -> int:
     lay = layout()
     src = repo_root() / "packages" / "spok1-guard"
     lines: list[str] = []
@@ -373,7 +407,7 @@ def install(dry_run: bool, update_policy: bool) -> int:
     # 4. managed settings
     existing = _load_json(lay.managed_settings)
     py_str = str(python) if python else str(lay.python_dir / "<python>")
-    merged = render(existing, py_str, str(lay.runner), str(lay.policy))
+    merged = render(existing, py_str, str(lay.runner), str(lay.policy), profile)
     if merged != existing:
         step(f"write the guard hook + deny rules into {lay.managed_settings}")
         if not dry_run:

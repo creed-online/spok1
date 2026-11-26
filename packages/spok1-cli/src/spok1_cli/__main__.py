@@ -23,11 +23,16 @@ def guard_install(
     update_policy: Annotated[
         bool, typer.Option(help="Replace the installed guardrails.toml (backs it up)")
     ] = False,
+    profile: Annotated[
+        str, typer.Option(help="laptop (default) | vm (unattended: guard is the approval layer)")
+    ] = "laptop",
 ) -> None:
     """Install the guard where agents can't change it (run as ADMIN / root)."""
     from spok1_cli import guard_install as gi
 
-    raise typer.Exit(gi.install(dry_run=dry_run, update_policy=update_policy))
+    if profile not in ("laptop", "vm"):
+        raise typer.BadParameter("profile must be laptop or vm")
+    raise typer.Exit(gi.install(dry_run=dry_run, update_policy=update_policy, profile=profile))
 
 
 @guard_app.command("uninstall")

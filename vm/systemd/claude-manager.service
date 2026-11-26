@@ -1,0 +1,21 @@
+[Unit]
+Description=spok1 manager (Claude Code + Discord channel, in tmux)
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=forking
+User=spok1
+Group=spok1
+WorkingDirectory=/home/spok1/work
+Environment=HOME=/home/spok1
+ExecStart=/bin/bash /home/spok1/spok1/vm/manager-start.sh
+ExecStop=/usr/bin/tmux kill-session -t manager
+# when Claude Code exits, the tmux session (and its server) ends: systemd restarts it
+Restart=always
+RestartSec=15
+# 1 GB VM: if memory runs out, kill the manager first rather than tailscaled/sshd
+OOMScoreAdjust=300
+
+[Install]
+WantedBy=multi-user.target

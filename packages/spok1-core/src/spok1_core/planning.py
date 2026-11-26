@@ -40,6 +40,13 @@ PLAIN_CODE_HINT = re.compile(
     r"sort|rename files|word count|line count|disk usage)\b",
     re.IGNORECASE,
 )
+# Mechanical git/gh steps: a handful of fixed commands, no judgement needed. Running them on a
+# strong model is pure cost (Checkpoint 2: a push + 2 draft PRs on opus was ~43% of the run).
+MECHANICAL = re.compile(
+    r"\b(push(es|ing)?|open(s|ing)? (draft )?(prs?|pull requests?)|create (draft )?(prs?|pull requests?)|"
+    r"tag (a )?release|bump (the )?version|merge (the )?(branch|pr))\b",
+    re.IGNORECASE,
+)
 
 
 class _Strict(BaseModel):
@@ -206,6 +213,21 @@ def audit(
                     message=f"max_turns {task.max_turns} is below the estimate {task.est_turns}: it will stop early",
                 )
             )
+        # mechanical git/gh steps → the cheapest model
+        if MECHANICAL.search(task.title) and task.agent not in ("coder", "reviewer", "tester"):
+            cheapest = min(weights, key=lambda m: weights[m])
+            if weights.get(task.model, 15) > weights[cheapest]:
+                saving = task.est_turns * (weights[task.model] - weights[cheapest])
+                findings.append(
+                    Finding(
+                        task=task.id,
+                        rule="mechanical",
+                        message=f"mechanical git/gh step on {task.model}: run it on {cheapest} "
+                        "(or as plain commands)",
+                        saving=saving,
+                    )
+                )
+                task.model = cast(Model, cheapest)
         # plain code instead of an LLM
         if PLAIN_CODE_HINT.search(task.title) and task.agent in ("researcher", "librarian"):
             findings.append(

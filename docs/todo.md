@@ -141,7 +141,7 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 **✅ Checkpoint 2**
 - [x] The guard test suite passes (311 tests, 258 guard cases), and the **installed** guard passes the latency gate: 85 ms median, 94 ms p95 (measured by the admin installer)
 - [x] Live attempts at `DROP TABLE` on a test DB (via `sqlite3` and via `python -c`), `rm -rf` outside the worktree and `git push --force` are stopped with the correct tier and reason: all T3 deny in a fresh session whose own permissions allowed them; targets intact; audit chain verified *(2026-11-26)*
-- [ ] One request becomes 2+ parallel worktree tasks. The auditor suggests at least one saving, the PRs open only after approval, and you get a summary with the usage spent.
+- [x] One request becomes 2+ parallel worktree tasks (2 coders in `spok1-sandbox/.claude/worktrees/{slugify,reverse-words}`), reviewed, draft PRs #1 and #2 opened only after the guard's T2 prompt, summary with usage (~141 units). The auditor first found **no saving**, so a `mechanical` rule was added: on the same plan it now saves 56 units (23%) by moving push/PR off opus *(2026-11-26)*
 - [ ] `/new-agent` creates a test project agent after you approve its spec card
 
 ## Phase 3: Azure VM

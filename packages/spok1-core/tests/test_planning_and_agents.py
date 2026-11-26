@@ -203,3 +203,35 @@ def test_registry_and_project_frontmatter(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     assert any("registry.yaml" in p for p in schemas.validate_brain(tmp_path))
+
+
+def test_mechanical_steps_go_to_the_cheapest_model() -> None:
+    """Regression from Checkpoint 2: the push + draft PRs ran on opus (~43% of the run)."""
+    plan = Plan(
+        request="x",
+        tasks=[
+            task(id="t1", title="Add slugify(text) to textkit with tests"),
+            task(
+                id="t3",
+                title="Review t1",
+                agent="reviewer",
+                model="opus",
+                est_turns=8,
+                max_turns=15,
+            ),
+            task(
+                id="t4",
+                title="Push branches and open draft PRs",
+                agent="manager",
+                model="opus",
+                est_turns=4,
+                max_turns=8,
+                tier="T2",
+            ),
+        ],
+    )
+    result = planning.audit(plan)
+    assert [f.rule for f in result.findings] == ["mechanical"]
+    assert result.revised.tasks[2].model == "haiku"
+    assert result.saving == 4 * (15 - 1)
+    assert result.revised.tasks[1].model == "opus"  # the review stays on opus

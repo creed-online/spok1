@@ -1,0 +1,59 @@
+# ── Secrets (never commit) ──────────────────────────────
+.env
+*.env
+.env.*
+!.env.example
+!*.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+*credentials*.json
+*secret*.json
+*token*.json
+service-account*.json
+vault/
+*.vault
+.claude/settings.local.json
+
+# ── Databases (learning.db, project.db) ─────────────────
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# ── Python / uv ─────────────────────────────────────────
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.coverage
+htmlcov/
+
+# ── Node (Claude Code tooling, Mermaid checks) ──────────
+node_modules/
+
+# ── Runtime output ──────────────────────────────────────
+*.log
+logs/
+.trash/
+backups/
+*.jsonl
+
+# ── OS / editors ────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+*.swp

@@ -1,0 +1,41 @@
+# spok1: your personal details (template)
+#
+# Copy this file to `config/my-details.local.yaml` and fill in the values there.
+# `*.local.yaml` is gitignored. Never put real values in this file, because the repo is public.
+# Secrets (tokens, keys, webhook URLs) never go here either: they go in .env files
+# or the vault. See docs/prd.md, "My details".
+
+azure:
+  subscription_id: ""          # or "current" to use the current `az account`
+  region: ""                   # e.g. centralindia, southindia
+  resource_group: ""           # e.g. rg-spok1
+  vm_size: "Standard_B2s"      # move to Standard_B2ms only if memory runs out
+
+machines:
+  primary_laptop: ""           # machine name for inbox/<machine>-... files, e.g. home-laptop
+  primary_laptop_os: "windows" # windows | macos | linux
+
+claude:
+  plan: "max"                  # subscription only; ANTHROPIC_API_KEY stays unset
+
+mem0:
+  user_id: ""                  # the same everywhere (VM, laptops, claude.ai)
+
+brain:
+  repo: ""                     # PRIVATE repo, e.g. github.com/<you>/brain
+
+discord:
+  user_id: ""                  # Settings → Advanced → Developer Mode → right-click your name → Copy User ID
+  guild_id: ""                 # your private server's ID
+
+schedule:
+  timezone: ""                 # e.g. Asia/Kolkata
+  quiet_hours: ""              # e.g. "23:00-07:30"
+  eod_report: "19:00"
+  weekly_review: "Mon 09:00"
+
+guardrails:
+  t3_cost_threshold: "₹500"    # any expected cost above this is T3
+
+repos:                         # repos the agents may work on
+  - ""

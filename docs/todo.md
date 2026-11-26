@@ -54,10 +54,12 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 - [x] Push to the public open-source repo: github.com/creed-online/spok1
 - [x] Add `LICENSE` (Apache-2.0), `NOTICE`, `README.md` and `.gitattributes` (LF for `.sh`)
 - [x] Gitignore `*.local.yaml`
-- [ ] Add `config/my-details.example.yaml` (empty values)
-- [ ] Add `SECURITY.md` (how to report a vulnerability privately) and `CONTRIBUTING.md`
-- [ ] Turn on GitHub secret scanning + push protection, and Dependabot
-- [ ] Set up the uv workspace: root `pyproject.toml` with empty `packages/spok1-*` skeletons, ruff, pytest and Python 3.12
+- [x] Add `config/my-details.example.yaml` (empty values)
+- [x] Add `SECURITY.md` (how to report a vulnerability privately) and `CONTRIBUTING.md`
+- [x] Turn on GitHub secret scanning + push protection, Dependabot alerts + security updates, and private vulnerability reporting
+- [ ] Set up the uv workspace: root `pyproject.toml` with empty `packages/spok1-*` skeletons, ruff, pyright, pytest and Python 3.12
+- [ ] Add `.github/dependabot.yml` (`uv` + `github-actions` ecosystems), once `pyproject.toml` and the CI workflow exist
+- [ ] Add the CI workflow (`.github/workflows/ci.yml`): ruff, pyright and pytest on Ubuntu and Windows
 
 ## Phase 1: The brain on any computer
 

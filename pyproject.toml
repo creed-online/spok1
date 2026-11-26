@@ -1,0 +1,61 @@
+[project]
+name = "spok1-workspace"
+version = "0.0.0"
+description = "spok1 workspace root (not published)"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+dependencies = [
+    "spok1-core",
+    "spok1-guard",
+    "spok1-agentd",
+    "spok1-mcp",
+    "spok1-web",
+    "spok1-cli",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+spok1-core = { workspace = true }
+spok1-guard = { workspace = true }
+spok1-agentd = { workspace = true }
+spok1-mcp = { workspace = true }
+spok1-web = { workspace = true }
+spok1-cli = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "pyright",
+    "pytest",
+]
+
+# ── ruff ────────────────────────────────────────────────
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["packages/*/src", "packages/*/tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "S", "RUF"]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"packages/*/tests/**" = ["S101"]  # assert is fine in tests
+
+# ── pyright ─────────────────────────────────────────────
+[tool.pyright]
+pythonVersion = "3.12"
+include = ["packages"]
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "strict"
+
+# ── pytest ──────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["packages"]
+addopts = ["--import-mode=importlib", "-ra"]

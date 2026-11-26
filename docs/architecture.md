@@ -676,18 +676,17 @@ flowchart TB
 
 ## 14. Code packages
 
-The repo is a uv workspace. `spok1-core` is the only package the others depend on, and no package depends on `spok1-cli` or `spok1-web`.
+The repo is a uv workspace (`packages/spok1-*`, each with a `src/` layout and its own `tests/`). `spok1-core` is the shared library. **`spok1-guard` depends on nothing, not even core**: it runs on every tool call, so it uses only the standard library and starts fast. No package depends on `spok1-cli` or `spok1-web`.
 
 ```mermaid
 flowchart BT
     CORE["spok1-core<br/>config · schemas · db · audit_log · vault"]
-    GUARD["spok1-guard<br/>PreToolUse classifier"]
+    GUARD["spok1-guard<br/>PreToolUse classifier<br/>(stdlib only, no deps)"]
     AGENTD["spok1-agentd<br/>scheduler · watchers · notifier · governor<br/>approvals · auditor · org · connectors · learning"]
     MCP["spok1-mcp<br/>notify · custom channel · local connector servers"]
     WEB["spok1-web<br/>Mission Control"]
     CLI["spok1-cli<br/>the spok1 command"]
 
-    GUARD --> CORE
     AGENTD --> CORE
     MCP --> CORE
     WEB --> CORE

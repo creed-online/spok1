@@ -1,0 +1,14 @@
+[project]
+name = "spok1-guard"
+version = "0.0.0"
+description = "PreToolUse risk classifier for spok1. Standard library only, with no dependencies, so it starts fast."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+authors = [{ name = "Veldray" }]
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+

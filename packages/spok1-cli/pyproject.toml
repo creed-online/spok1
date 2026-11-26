@@ -1,0 +1,20 @@
+[project]
+name = "spok1-cli"
+version = "0.0.0"
+description = "The spok1 command-line tool."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+authors = [{ name = "Veldray" }]
+dependencies = ["spok1-core"]
+
+[project.scripts]
+spok1 = "spok1_cli.__main__:main"
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv.sources]
+spok1-core = { workspace = true }
+

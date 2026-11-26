@@ -277,7 +277,7 @@ Project watchers are defined by project agents, such as the sales lead watcher b
 brain/
 ├── CLAUDE.md             # manager process + @profile.md import (user-level instructions)
 ├── beliefs.yaml          # what it believes about how I work, each with confidence + evidence
-├── profile.md            # generated from high-confidence beliefs (kept under ~300 lines)
+├── profile.md            # generated from high-confidence beliefs (CLAUDE.md + profile under 200 lines)
 ├── feedback.md           # every correction I've given, dated (append-only)
 ├── agents/               # core agent definitions
 ├── skills/<name>/        # SKILL.md + meta.yaml (status, uses, success rate, version)
@@ -290,12 +290,15 @@ brain/
 ```
 
 **Linking into Claude Code:**
-- `~/.claude/CLAUDE.md` contains `@~/brain/CLAUDE.md`. Verify the import syntax on Windows.
-- `~/.claude/agents` and `~/.claude/skills` link to the brain folders: symlinks on Linux and macOS, directory junctions (`mklink /J`) on Windows.
+- `~/.claude/CLAUDE.md` contains `@~/brain/CLAUDE.md`, inside a block managed by `spok1 install`. Anything else you have in that file stays as it is. (Checked against the docs 2026-11-26: `@~/` works on every OS, and the docs say to keep each CLAUDE.md under 200 lines.)
+- `~/.claude/agents` links to `~/brain/agents`.
+- **Each skill is linked on its own:** `~/.claude/skills/<name>` → `~/brain/skills/<name>`. That way, skills you installed yourself, such as plugins, stay where they are.
+- Links are symlinks on Linux and macOS, and directory junctions on Windows (no admin rights needed).
 
 **Mem0 Cloud:**
 - Holds facts and episodes, with the same `user_id` everywhere.
 - It updates in real time across the VM, every computer and claude.ai.
+- Claude Code connects to Mem0's **hosted MCP server**, `https://mcp.mem0.ai/mcp`, the same one the claude.ai connector uses. Laptops sign in with OAuth in the browser; the VM, which runs headless, uses an API key sent as a bearer token. The local `mem0-mcp-server` package was archived in Mar 2026.
 
 **What goes where:**
 
@@ -561,10 +564,15 @@ The auditor sits next to the manager at all times. It has a single goal: **the s
 
 | Hook | What it does |
 |---|---|
-| `SessionStart` | `git -C ~/brain pull --ff-only`; continues quietly if that fails |
-| `SessionEnd` | Runs `claude -p --model haiku` over the transcript to extract an episode and signals, writes `inbox/<machine>-...md`, then commits and pushes in the background |
+| `SessionStart` | `git -C ~/brain pull --ff-only`, continuing quietly if that fails. Records the session as active, and catches up on any session that never finished capture, such as after a crash. Prints nothing. |
+| `SessionEnd` | Marks the session finished, then starts a **separate background process**, `spok1 capture`, and exits at once. That process runs `claude -p --model haiku` (no tools, no MCP servers, `--max-turns 1`) over the transcript, writes `inbox/<machine>-<date>-<id>.md`, then commits and pushes. |
 
-Verify the hook names against the docs.
+**Why the hooks work this way** (checked against the docs 2026-11-26):
+- SessionEnd has a **1.5 s** default time limit, and it never fires if a session crashes. So no slow work happens inside the hook.
+- Each hook is the `spok1` program, written in Python and run directly through the hook's **exec form** (`command` + `args`), with no shell. The same file works on every OS, and paths with spaces work.
+- Every `claude` process that spok1 starts carries `SPOK1_INTERNAL=1`, and spok1's hooks skip those processes, so a capture can never trigger another capture. Those processes are also started without `ANTHROPIC_API_KEY`.
+- spok1 doesn't use `--bare`: it skips subscription login, so it would need an API key.
+- Sessions with fewer than 2 user messages are skipped, to save usage.
 
 **What runs where:**
 - Laptops can add reminders and jobs (`brain/jobs/`), create project agents and send Discord notifications.
@@ -929,9 +937,8 @@ We evaluated existing projects on 2026-11-25 and decided to **build our own**. N
 │                                # guardrails.yaml, grants.yaml)
 ├── claude/                      # Claude Code config (not Python packages)
 │   ├── settings.vm.json / settings.laptop.json   # permission allow/deny lists
-│   ├── hooks/                   # thin .sh + .ps1 shims: guard (calls spok1-guard),
-│   │                            # session-start-sync, session-end-capture
-│   └── mcp-mem0.sh / .ps1       # Mem0 MCP at user scope, shared user_id
+│                                # (hooks need no shims: settings.json runs `spok1 hook <event>`
+│                                # directly; `spok1 install` adds them and the MCP servers)
 ├── packages/                    # every Python package has its own tests/
 │   ├── spok1-core/              # shared library, used by all the others
 │   │   ├── config.py            # loads machine config + .env, project resolution

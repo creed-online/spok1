@@ -6,7 +6,13 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "Apache-2.0"
 authors = [{ name = "Veldray" }]
-dependencies = ["spok1-core"]
+dependencies = [
+    "mcp>=2.3.0",
+    "spok1-core",
+]
+
+[project.scripts]
+spok1-notify-mcp = "spok1_mcp.notify_server:main"
 
 [build-system]
 requires = ["uv_build>=0.11,<0.12"]

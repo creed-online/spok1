@@ -1,0 +1,22 @@
+# What spok1 believes about how its owner works.
+# Each belief's confidence = alpha / (alpha + beta) (a Beta distribution):
+#   alpha += confirmations, beta += contradictions.
+# Promoted into profile.md at confidence >= 0.8 with >= 3 pieces of evidence; demoted below 0.6.
+# A belief the owner stated explicitly starts high and is `pinned: true`.
+# Only the VM's nightly job edits this file.
+#
+# Example:
+# - id: tooling-pnpm
+#   statement: Uses pnpm, never npm or yarn, for JavaScript projects.
+#   scope: global
+#   alpha: 9
+#   beta: 1
+#   impact: 3
+#   pinned: true
+#   evidence:
+#     - {date: 2026-11-26, source: interview, kind: confirm, note: "stated in setup interview"}
+#   created: 2026-11-26
+#   updated: 2026-11-26
+
+version: 1
+beliefs: []

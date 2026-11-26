@@ -65,27 +65,33 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 
 **Check the docs first** (code.claude.com/docs): `@imports` on Windows, the user-level `CLAUDE.md`, the hook event names (`SessionStart`, `SessionEnd`), hook input and output formats, the Mem0 MCP setup.
 
-- [ ] Write `brain-template/`
-  - [ ] `CLAUDE.md` (manager process from §2, `@profile.md` import)
-  - [ ] Empty `beliefs.yaml`, `profile.md`, `feedback.md`, `changelog.md`
-  - [ ] Folders: `agents/`, `skills/`, `projects/`, `jobs/`, `evals/`, `inbox/`, `reports/`
-  - [ ] Placeholder `guardrails.yaml` and `grants.yaml` (filled in during Phase 2)
-  - [ ] YAML schemas for beliefs, jobs and skill `meta.yaml`
-- [ ] Create the private brain repo from the template (T2)
+- [x] Check the docs, and record what changed the design (PRD §4 and §8, open questions below)
+- [x] Write `brain-template/`
+  - [x] `CLAUDE.md` (manager process from §2, `@profile.md` import, under 200 lines)
+  - [x] Empty `beliefs.yaml`, `profile.md`, `feedback.md`, `changelog.md`
+  - [x] Folders: `agents/`, `skills/`, `projects/` (+ `registry.yaml`), `jobs/`, `evals/`, `inbox/`, `reports/`
+  - [x] Placeholder `guardrails.yaml` and `grants.yaml` (filled in during Phase 2)
+  - [x] Schemas for beliefs, jobs and skill `meta.yaml` (pydantic, in `spok1-core`) + `spok1 validate-brain`
+- [ ] Create the private brain repo `creed-online/spok1-brain` from the template (T2)
 - [ ] Interview me (10–15 questions) to seed `beliefs.yaml` and `profile.md`
-- [ ] `spok1-core`: config loader (machine name, paths, `.env`), YAML schema validation
-- [ ] `claude/mcp-mem0.sh` and `.ps1`: Mem0 MCP at user scope with the shared `user_id`
-- [ ] `spok1-mcp`: the `notify` server (Discord webhook, send-only), plus a CLI fallback script
-- [ ] Hooks (`.sh` and `.ps1`)
-  - [ ] `session-start-sync`: `git -C ~/brain pull --ff-only`, continuing quietly if it fails
-  - [ ] `session-end-capture`: `claude -p --model haiku` extracts the episode into `inbox/<machine>-<date>-<id>.md`, then commits and pushes in the background
-- [ ] `laptop/install.ps1` and `laptop/install.sh` (safe to rerun)
-  - [ ] Install Claude Code if missing and clone the brain
-  - [ ] Link `~/.claude/{CLAUDE.md,agents,skills}` (symlinks; `mklink /J` on Windows)
-  - [ ] Add the Mem0 MCP, the hooks and `notify`, and copy `settings.laptop.json`
-  - [ ] Register the machine name, and create `~/.config/agent/.env.example`
-- [ ] You: create the Discord server and webhooks, and fill in `~/.config/agent/.env` and the Mem0 key
-- [ ] Run the installer on your laptop
+- [x] `spok1-core`: paths, config loader (machine name, `.env`, `my-details.local.yaml`), schema validation, Discord webhook sender
+- [x] Mem0: the hosted MCP server (`https://mcp.mem0.ai/mcp`), with OAuth on laptops, added by `spok1 install` (the local package is archived)
+- [x] `spok1-mcp`: the `spok1-notify` server (Discord webhook, send-only), plus the `spok1 notify` CLI
+- [x] Hooks in Python, run through exec form (`spok1 hook session-start|session-end`), one implementation for every OS
+  - [x] `session-start`: `git pull --ff-only` (continues quietly if it fails), records the active session, catches up on missed or crashed captures, prints nothing
+  - [x] `session-end`: writes a marker and starts a detached `spok1 capture` (tested: exits in 0.8 s, and the capture outlives it)
+  - [x] `spok1 capture`: haiku (no tools or MCP, 1 turn) → `inbox/<machine>-<date>-<id>.md` → commit + push; skips trivial sessions; retries 3 times; holds a lock; never captures itself
+- [x] `laptop/install.ps1` and `laptop/install.sh` (safe to rerun, `--dry-run`) → `spok1 install`
+  - [x] Refuse to run if `ANTHROPIC_API_KEY` is set (process, user and system environment)
+  - [x] Install the Claude Code CLI and uv with the official installers if missing; clone or pull the brain
+  - [x] Back up `settings.json`, `CLAUDE.md` and `.claude.json`; add a managed import block to `~/.claude/CLAUDE.md`
+  - [x] Link `~/.claude/agents`, and **each skill** separately (your own skills stay); junctions on Windows
+  - [x] Merge the hooks into `~/.claude/settings.json` (keeping everything else); add the `mem0` and `spok1-notify` MCP servers
+  - [x] Register the machine name; write `~/.config/agent/.env.example` and an empty `.env`
+  - [ ] Permission lists (`settings.laptop.json`): moved to Phase 2, together with the guard
+- [x] Tests: 43 passing (config, schemas, Discord, transcript, markers, hooks, capture end to end with a local git remote, install merge logic, junctions)
+- [ ] You: create the Discord server and an `#alerts` webhook, and paste it into `~/.config/agent/.env`
+- [ ] Run the installer on your laptop (T2), then sign in to Mem0 with `/mcp`
 
 **✅ Checkpoint 1**
 - [ ] A new session knows your profile and finds a Mem0 fact
@@ -317,10 +323,12 @@ These are flagged "verify" in the PRD. Record each answer here, and in the PRD i
 
 - [ ] Discord channel plugin: exact name, pairing, whether it relays reactions and permission prompts
 - [ ] Does Remote Control work with the VM manager's login?
-- [ ] `@import` syntax for `~/.claude/CLAUDE.md` on Windows
-- [ ] PreToolUse hook output format for allow/ask/deny with a reason
-- [ ] The most protected settings scope that agents can't edit
-- [ ] Hook names `SessionStart` / `SessionEnd`
-- [ ] Mem0 field for the project namespace (`app_id`?)
+- [x] `@import` syntax: `@path`, relative to the importing file; `@~/...` works; at most 4 hops; paths with spaces need `\ ` escapes; imports inside code blocks are ignored. The user file is `~/.claude/CLAUDE.md` on every OS. Imports from outside the working directory show a one-time approval dialog (user-scope files don't). Keep each CLAUDE.md under **200 lines**. *(checked 2026-11-26)*
+- [x] PreToolUse output: `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow|deny|ask|defer","permissionDecisionReason":"..."}}`. Exit 2 blocks (stderr is the reason); other non-zero exits don't block unless `"onFailure": "block"`. On Windows without Git Bash, only exits 0 and 2 count. Precedence: deny > defer > ask > allow. *(checked 2026-11-26)*
+- [x] Most protected settings scope: managed settings (`C:\Program Files\ClaudeCode\managed-settings.json`, `/etc/claude-code/managed-settings.json`, `/Library/Application Support/ClaudeCode/managed-settings.json`). Precedence: managed > command line > local > project > user. Permission lists merge across files; rules are checked deny → ask → allow. *(checked 2026-11-26)*
+- [x] `SessionStart` (sources: startup/resume/clear/compact/fork; can add `additionalContext`) and `SessionEnd` (reasons: clear/resume/logout/prompt_input_exit/other) both exist. **SessionEnd's default timeout is 1.5 s** (60 s max per hook). *(checked 2026-11-26)*
+- [x] Mem0: `app_id` is supported and stored on every memory, so it can be used for project namespaces. The local `mem0-mcp-server` was archived in Mar 2026; use the hosted server `https://mcp.mem0.ai/mcp` (OAuth, or an API key as a bearer token). *(checked 2026-11-26)*
+- [ ] Mem0 hosted MCP: how `user_id` / `app_id` are passed to its tools (not in the docs; test in Phase 1)
+- [x] Skills: `~/.claude/skills/` already holds your own skills, so each brain skill gets its own link (the docs confirm per-skill links work). Still to check live: that Claude Code loads agents through the `~/.claude/agents` junction (Phase 1 checkpoint).
 - [ ] `claude mcp login` vs `/mcp` for remote MCP sign-in
 - [ ] Is agent teams stable enough to adopt?

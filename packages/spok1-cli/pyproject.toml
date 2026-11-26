@@ -6,7 +6,10 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "Apache-2.0"
 authors = [{ name = "Veldray" }]
-dependencies = ["spok1-core"]
+dependencies = [
+    "spok1-core",
+    "typer>=0.29.3",
+]
 
 [project.scripts]
 spok1 = "spok1_cli.__main__:main"

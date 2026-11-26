@@ -1,0 +1,11 @@
+# Standing grants (PRD §6.3): narrow, time-limited pre-approvals for T2 actions.
+# Never for T3 or forbidden actions. Listed in the daily digest; revoke with `revoke <id>`.
+#
+# Example (Phase 5 format):
+# - id: g1
+#   scope: "git push to agent/* branches and draft PRs in repo1"
+#   limit: null
+#   expires: 2026-12-10
+
+version: 1
+grants: []

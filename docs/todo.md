@@ -16,7 +16,7 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 | 1 | The brain on any computer | laptop | `[x]` |
 | 2 | Guardrails, orchestration, agent factory | laptop | `[x]` |
 | 3 | Azure VM | Azure (costs start) | `[x]` |
-| 4 | Always-on manager and Discord | VM | `[ ]` |
+| 4 | Always-on manager and Discord | VM | `[x]` |
 | 5 | agentd runtime and approval broker | VM | `[ ]` |
 | 6 | Learning engine and full auditor | VM + laptop | `[ ]` |
 | 7 | Project OS core | VM | `[ ]` |
@@ -170,21 +170,24 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 
 **Check the docs first:** the Channels and Discord plugin (name, pairing, allow-list, whether reactions and permission prompts are relayed), `/login` vs `setup-token`, Remote Control.
 
-- [ ] `vm/bootstrap.sh`: Claude Code, plugins, brain clone, links, uv workspace install
-- [ ] You: run `/login` on the VM over SSH
-- [ ] You: create the Discord bot application and put its token in `vm/.env` on the VM
-- [ ] You: create a **separate Mem0 API key named `spok1-vm`** (in the new Mem0 account) and paste it into the VM's `~/.config/agent/.env` over SSH. Never put it in cloud-init. The laptop key (kept in the laptop `.env`) stays as a spare.
-- [ ] Add the hosted Mem0 MCP on the VM with that key as a bearer token, set `ENABLE_CLAUDEAI_MCP_SERVERS=false` for agentd jobs, and check that a VM job and the laptop see the same memories
-- [ ] Install the Discord channel plugin, pair your account, allow only your user ID
-- [ ] agentd bootstrap step: create the HQ channels (`#command`, `#approvals`, `#alerts`, `#daily-digest`, `#learning`) and their webhooks
-- [ ] `vm/manager-start.sh` + `claude-manager.service` (tmux, `Restart=always`)
-- [ ] Clone the agent repos on the VM with the fine-grained GitHub token
-- [ ] `vm/.env.example` with every variable, left empty
+- [x] Check the docs: Channels is a research preview; the Discord plugin needs Bun and a claude.ai `/login`, relays permission prompts as DM buttons, answers DMs only until channels are opted in; `setup-token` can't do channels or claude.ai connectors; Claude Code lists 4 GB+ RAM
+- [x] Memory test on the 1 GB VM: manager ~230–270 MB, ~480–510 MB available, a parallel `claude -p` job ran fine with swap → option A works
+- [x] `vm/root-setup.sh` (azureuser, sudo): runs from a root-owned repo copy, installs the guard with the **VM profile**, MTU fix, manager service
+- [x] `vm/bootstrap.sh` (spok1): Claude Code, Bun (no-unzip fallback), gh with a fine-grained token (`spok1-brain` + `spok1-sandbox` only), brain clone, `spok1 install`, `~/work`
+- [x] `vm/manager-start.sh` + `claude-manager.service`: tmux, `Restart=always`, `OOMScoreAdjust`, `MCP_TIMEOUT=120s`, manager on **Sonnet**
+- [x] Guard VM profile: Claude Code's own rules allow tools; the guard is the approval layer (T2 → Discord Allow/Deny buttons); auto mode disabled; 1 sub-agent at a time
+- [x] You: `/login` on the VM (Max); Discord bot (Message Content intent on, Public Bot off), token in the plugin's token file; paired; policy `allowlist`
+- [x] VM trims: Canva / Docs / Sheets connectors and the synced marketing / dart plugins off on the VM (faster replies, more RAM); Mem0 + Discord on
+- [x] Fixes found on the way: MTU 1400 (uv's TLS handshakes were dropped at 1500), IPv4 preference, Discord tools T0 in the guard, plugin start timeout
+- [ ] Mem0 for headless jobs on the VM (a separate `spok1-vm` API key as a bearer token): moved to Phase 5, where agentd's `claude -p` jobs first need it. The manager uses the claude.ai Mem0 connector through `/login`
+- [ ] HQ channels (`#command`, `#approvals`, `#alerts`, `#daily-digest`, `#learning`) created by agentd: moved to Phase 5 (DMs work now)
+- [ ] The VM's settings template with every variable, left empty: Phase 5, together with agentd's settings
+- [ ] Small fixes: docs-writer's Windows path, `spok1` on the VM user's PATH, `~/.spok1/plans` as a T0 write root, sandbox `uv_build` range
 
-**✅ Checkpoint 4**
-- [ ] From your phone, "In repo1, add a unit test for X and open a PR" is dispatched, reviewed and opened as a PR, and you get a summary
-- [ ] Messages from another Discord account are ignored (tested with an alt account)
-- [ ] The manager survives `sudo reboot`
+**✅ Checkpoint 4: PASSED 2026-11-26**
+- [x] From the phone: "add a unit test for word_count … open a draft PR" → planned, audited (saving 6 units), cloned, coded, reviewed by Opus, pushed after the Discord 🔐 Allow → **PR #3** (draft, +8 lines). The VM guard logged 49 T0, 2 T1, 9 T2-ask
+- [x] A second Discord account's DM is dropped before the manager sees it (no reply, no pairing code; policy `allowlist`, 1 user)
+- [x] The manager survives a reboot: service, Discord plugin, MTU and tmux all back on their own, and the bot answered
 
 ## Phase 5: The agentd runtime and the approval broker
 

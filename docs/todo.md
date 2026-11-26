@@ -15,7 +15,7 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 | 0 | Decisions and setup | laptop | `[x]` |
 | 1 | The brain on any computer | laptop | `[x]` |
 | 2 | Guardrails, orchestration, agent factory | laptop | `[x]` |
-| 3 | Azure VM | Azure (costs start) | `[ ]` |
+| 3 | Azure VM | Azure (costs start) | `[x]` |
 | 4 | Always-on manager and Discord | VM | `[ ]` |
 | 5 | agentd runtime and approval broker | VM | `[ ]` |
 | 6 | Learning engine and full auditor | VM + laptop | `[ ]` |
@@ -157,12 +157,14 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 - [x] `infra/azure-create.sh`: dry run by default, `--yes` to create; resource group `rg-spok1` (tagged), VNet, NSG with **no inbound rules** (`--nsg-rule NONE`), Standard static public IP (outbound only), 32 GB Standard SSD, auto-shutdown off, waits for cloud-init, joins Tailscale with a one-time key you paste, best-effort $20 budget alert. Safe to rerun
 - [x] `infra/azure-destroy.sh`: only deletes a group tagged `project=spok1`, after you type its name (T3: you run it)
 - [x] Tests: cloud-init valid and secret-free, no inbound rules, destroy is scoped; shellcheck in CI
-- [ ] You: a Tailscale account, with Tailscale on your laptop (and phone)
-- [ ] You: dry run, then `infra/azure-create.sh --yes` (T2: costs money)
+- [x] Tailscale account; laptop, iPhone and `spok1-vm` on the tailnet
+- [x] VM created by the owner (`infra/azure-create.sh --yes`, 2026-11-26): `spok1-vm`, B2pts_v2, centralindia. The budget couldn't be created from the CLI on this subscription
+- [ ] You: set a $20/month budget with an email alert in the portal (Cost Management → Budgets)
 
-**✅ Checkpoint 3**
-- [ ] `ssh` over Tailscale works as the non-root user
-- [ ] The public IP has no open inbound ports (verified by an external scan)
+**✅ Checkpoint 3: PASSED 2026-11-26**
+- [x] `ssh spok1@spok1-vm` over Tailscale works: user `spok1`, aarch64, **no sudo**; uv, gh, Tailscale installed; unattended upgrades active
+- [x] The public IP has no open inbound ports: no NSG inbound rules, no NIC-level NSG, and a TCP probe of 1,036 ports from outside Azure found none open
+- [x] Memory at idle: 944 MB total, ~606 MB available, 4 GB swap (12 MB used)
 
 ## Phase 4: The always-on manager and Discord
 

@@ -59,6 +59,8 @@ write_files:
       PermitRootLogin no
 
 runcmd:
+  # MTU 1400: at 1500, large TLS handshakes (e.g. uv/rustls) were dropped on the path to PyPI
+  - [bash, -c, 'ip link set dev eth0 mtu 1400; printf "[Unit]\nDescription=spok1 MTU 1400\nAfter=network-online.target\nWants=network-online.target\n[Service]\nType=oneshot\nExecStart=/usr/sbin/ip link set dev eth0 mtu 1400\nRemainAfterExit=yes\n[Install]\nWantedBy=multi-user.target\n" > /etc/systemd/system/spok1-mtu.service; systemctl daemon-reload; systemctl enable spok1-mtu.service']
   # 4 GB swap file (idempotent)
   - [bash, -c, 'if [ ! -f /swapfile ]; then fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile && echo "/swapfile none swap sw 0 0" >> /etc/fstab; fi']
   - [sysctl, --system]

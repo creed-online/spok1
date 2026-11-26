@@ -28,6 +28,25 @@ id spok1 >/dev/null 2>&1 || { echo "✗ user spok1 missing (cloud-init didn't ru
 echo "== 0. prefer IPv4 (the VNet has no IPv6 route; uv waits on IPv6 addresses until it times out)"
 grep -q '^precedence ::ffff:0:0/96  100' /etc/gai.conf 2>/dev/null || echo 'precedence ::ffff:0:0/96  100' >> /etc/gai.conf
 echo "✓ /etc/gai.conf"
+# Diagnosed 2026-11-26: at MTU 1500, large TLS ClientHellos (rustls/uv, post-quantum key share)
+# were dropped on the path to PyPI's CDN; curl/Python (small hellos) worked. MTU 1400 fixes it.
+ip link set dev eth0 mtu 1400
+cat > /etc/systemd/system/spok1-mtu.service <<'UNIT'
+[Unit]
+Description=spok1: MTU 1400 on eth0 (large TLS handshakes were dropped at 1500)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/ip link set dev eth0 mtu 1400
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl daemon-reload && systemctl enable spok1-mtu.service >/dev/null
+echo "✓ eth0 MTU 1400 (now and at every boot)"
 
 echo "== 1. packages"
 DEBIAN_FRONTEND=noninteractive apt-get install -y -q unzip git >/dev/null

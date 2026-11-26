@@ -1,0 +1,12 @@
+[Unit]
+Description=spok1: MTU 1400 on eth0 (large TLS handshakes were dropped at 1500)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/ip link set dev eth0 mtu 1400
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

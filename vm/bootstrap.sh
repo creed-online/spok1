@@ -11,6 +11,8 @@ set -euo pipefail
 export PATH="$HOME/.local/bin:$HOME/.bun/bin:$PATH"
 ROOT="$HOME/spok1"
 BRAIN_REPO="${SPOK1_BRAIN_REPO:-https://github.com/creed-online/spok1-brain.git}"
+# The small VM times out when uv opens many parallel downloads: fewer at a time, longer timeout.
+export UV_CONCURRENT_DOWNLOADS="${UV_CONCURRENT_DOWNLOADS:-2}" UV_HTTP_TIMEOUT="${UV_HTTP_TIMEOUT:-120}"
 
 [ "$(id -un)" = spok1 ] || { echo "✗ run as spok1"; exit 1; }
 [ -z "${ANTHROPIC_API_KEY:-}" ] || { echo "✗ ANTHROPIC_API_KEY is set: it would bill the API"; exit 1; }

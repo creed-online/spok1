@@ -19,6 +19,8 @@ REPO="${SPOK1_REPO:-https://github.com/creed-online/spok1.git}"
 REF="${SPOK1_REF:-main}"
 BASE=/opt/spok1
 SRC=$BASE/src
+# The small VM times out when uv opens many parallel downloads: fewer at a time, longer timeout.
+export UV_CONCURRENT_DOWNLOADS="${UV_CONCURRENT_DOWNLOADS:-2}" UV_HTTP_TIMEOUT="${UV_HTTP_TIMEOUT:-120}"
 
 [ "$(id -u)" = 0 ] || { echo "✗ run with sudo"; exit 1; }
 id spok1 >/dev/null 2>&1 || { echo "✗ user spok1 missing (cloud-init didn't run?)"; exit 1; }

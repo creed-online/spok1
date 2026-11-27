@@ -193,7 +193,17 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 
 **Check first:** the healthchecks.io API, the Discord REST and gateway limits, the `claude -p --output-format json` usage fields.
 
-> **Paused here 2026-11-26. Docs checked; resume with the 3 open decisions.**
+> **2026-11-27: 5a built and live on the VM.** Decisions taken: 5a then 5b; agentd as user `spok1d`; replies by REST polling.
+> - [x] `spok1-agentd`: settings, `learning.db`, Discord REST client, HQ channels (reuses existing, keeps running without Manage Channels, retries every 10 min), notifier (P1/P2/P3, quiet hours, dedup, 20/h, alert IDs, digest at 19:00), owner-only replies (ack/snooze/noise/do it), scheduler (brain jobs, one-off + cron, paused projects skipped), governor (1 at a time, daily budget, 30-min back-off), runner (parses `claude -p` JSON), watchers (disk/memory, manager, login expiry, job failures, CI, PRs > 24 h), dead-man ping. 26 tests
+> - [x] VM: `spok1d` user, `/var/lib/spok1d`, `/etc/spok1/agentd.env` (0600), root-owned `spok1-runas` wrapper as the only sudo rule, `agentd.service`; settings filled (bot token copied file-to-file, never shown)
+> - [x] **Live:** test alert reached `#alerts`; a reminder fired on time (17:11); the owner's `ack` was applied
+> - [x] Standing grants in the guard (owner-written admin-only `grants.toml`, never T3/FORBIDDEN); the owner installed 3 grants (own-repo pushes, VM access, sandbox PRs) until 2026-12-11
+> - [ ] You: re-authorize the bot with Manage Channels + Manage Webhooks (then the other HQ channels appear)
+> - [ ] You: healthchecks.io ping URL → `HEALTHCHECK_URL` (dead-man switch)
+> - [ ] You: `claude setup-token` on the VM → `CLAUDE_CODE_OAUTH_TOKEN` (agent-run jobs)
+> - [ ] Next: **5b**, the approval broker
+>
+> Earlier notes (docs check, 2026-11-26):
 > - Findings: only one process can hold the bot's gateway (the manager's plugin), so agentd uses **REST only** (post, create channels/webhooks, poll replies every ~10 s; 50 req/s limit). Channel and webhook creation need **Manage Channels + Manage Webhooks** (re-authorize the bot). `claude -p` auto-denies approval prompts, so T2 steps in scheduled jobs go through **`--permission-prompt-tool`** (its schema isn't documented: test it first). `-p` JSON has `num_turns`, `usage`, `modelUsage`, `total_cost_usd`, subtype `error_max_turns`; limits print "You've hit your session limit · resets …". healthchecks.io: free 20 checks, `hc-ping.com/<uuid>`, webhook alerts.
 > - **Open decisions (proposed: yes to all three):** (1) build **5a** (runtime) first, then **5b** (approval broker); (2) run agentd as its own Linux user **`spok1d`**, so agents can't read or forge approvals, grants or the headless token; (3) agentd reads replies by **REST polling** (no Claude usage).
 > - **Owner prep:** re-authorize the bot with the 2 extra permissions; a healthchecks.io check; on the VM, `claude setup-token` and the Mem0 `spok1-vm` key into agentd's protected settings file.

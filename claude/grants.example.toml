@@ -1,0 +1,38 @@
+# spok1 standing grants (PRD §6.3). THE OWNER WRITES THESE BY HAND, AS ADMIN.
+#
+# Copy to (admin-only, next to guardrails.toml):
+#   Windows  C:\Program Files\spok1\grants.toml
+#   Linux    /etc/spok1/grants.toml
+# Each grant turns a matching T2 "ask" into a pass. T3 and FORBIDDEN are never covered (in code).
+# Rules: the rule id in the guard's ask message, e.g. "git.push", "gh.write", "remote", "az.write".
+# `expires` is required and at most 30 days ahead. Remove a block to revoke it.
+
+# ── laptop ────────────────────────────────────────────────────────────
+
+[[grant]]
+id = "push-own-repos"
+why = "routine pushes to my own spok1 repos (force-push stays T3)"
+rules = ["git.push"]
+cwd = ["~/Desktop/spok1", "~/brain", "~/projects/sandbox"]
+expires = 2026-12-11
+
+[[grant]]
+id = "vm-access"
+why = "ssh and Azure maintenance commands on my spok1 VM (deleting stays T3)"
+rules = ["remote", "az.write"]
+contains = ["spok1-vm", "rg-spok1"]
+expires = 2026-12-11
+
+[[grant]]
+id = "sandbox-prs"
+why = "draft PRs in the sandbox"
+rules = ["gh.write"]
+cwd = ["~/projects/sandbox"]
+expires = 2026-12-11
+
+# ── VM (/etc/spok1/grants.toml) would use VM paths, e.g. ──────────────
+# [[grant]]
+# id = "sandbox-pushes"
+# rules = ["git.push", "gh.write"]
+# cwd = ["~/projects/sandbox"]
+# expires = 2026-12-11

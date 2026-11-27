@@ -65,6 +65,12 @@ def decide(
     raw_input = data.get("tool_input")
     tool_input = cast("dict[str, Any]", raw_input) if isinstance(raw_input, dict) else {}
     verdict = classify_tool(tool_name, tool_input, ctx)
+    if verdict.tier == Tier.T2:
+        from spok1_guard import grants
+
+        active, _problems = grants.load(grants.default_path(ctx.policy_path))
+        command = str(tool_input.get("command") or tool_input.get("file_path") or "")
+        verdict = grants.apply(verdict, active, ctx.n(ctx.cwd), command, ctx.n)
     return verdict, _output(verdict)
 
 

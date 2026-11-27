@@ -167,7 +167,7 @@ class PathContext:
         # any project's Claude Code settings, and managed settings anywhere
         if parent == ".claude" and name in ("settings.json", "settings.local.json"):
             return True
-        return name in ("managed-settings.json", "guardrails.toml")
+        return name in ("managed-settings.json", "guardrails.toml", "grants.toml")
 
     def is_secret(self, path: str) -> bool:
         p = self.n(path)

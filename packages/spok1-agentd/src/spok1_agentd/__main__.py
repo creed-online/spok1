@@ -63,6 +63,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(f"sent alert #{alert_id}")
         return 0
+    if cmd == "learn-now":
+        print(d.learn_now())
+        return 0
     if cmd == "run":
         try:
             for line in d.setup_discord():
@@ -71,7 +74,7 @@ def main(argv: list[str] | None = None) -> int:
             logging.warning("Discord setup failed: %s", exc)
         d.run_forever()
         return 0
-    print("usage: spok1-agentd run | setup | status | test-alert", file=sys.stderr)
+    print("usage: spok1-agentd run | setup | status | test-alert | learn-now", file=sys.stderr)
     return 2
 
 

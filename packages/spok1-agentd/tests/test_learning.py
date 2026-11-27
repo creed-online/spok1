@@ -231,8 +231,41 @@ class FakeProc:
     def poll(self) -> int:
         return 0
 
-    def communicate(self) -> tuple[str, str]:
+    def communicate(self, timeout: int | None = None) -> tuple[str, str]:
         return self.out, ""
+
+
+def test_learn_now_posts_even_in_quiet_hours(tmp_path: Path) -> None:
+    brain = make_brain(tmp_path)
+    settings = Settings(
+        bot_token="t",
+        guild_id="g",
+        owner_id="1",
+        oauth_token="tok",
+        brain_dir=brain,
+        work_dir=tmp_path / "work",
+        state_dir=tmp_path / "state",
+    )
+
+    def run_input(argv: list[str], data: str) -> tuple[int, str]:
+        (brain / argv[-1]).write_text(data, encoding="utf-8")
+        return 0, ""
+
+    d = FakeDiscord()
+    daemon = Daemon(
+        settings,
+        DB(":memory:"),
+        d,  # type: ignore[arg-type]
+        clock=lambda: NOW,
+        run=lambda _a: (0, "abc9999"),
+        run_input=run_input,
+        start_job=lambda _j: FakeProc(reply_with(beliefs=[NEW_AUTONOMY])),
+    )
+    daemon.channels.update({"alerts": "77"})
+    text = daemon.learn_now()
+    assert "What I learned today" in text and "abc9999" in text
+    assert d.sent == [("77", text)]  # no #learning channel: falls back to #alerts
+    assert daemon.learn_now() == learning.NOTHING
 
 
 class FakeDiscord:

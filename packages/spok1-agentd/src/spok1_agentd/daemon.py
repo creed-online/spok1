@@ -237,6 +237,50 @@ class Daemon:
             return
         self.db.put("learn:pending_report", "")
 
+    def learn_now(self, timeout: int = 900) -> str:
+        """One learning pass right away (`spok1-agentd learn-now`): same checks as the nightly
+        run, but it waits for Claude and posts the report even in quiet hours."""
+        if not self.s.oauth_token:
+            return "No headless token (CLAUDE_CODE_OAUTH_TOKEN): nothing ran."
+        now = self.clock()
+        prep = learning.prepare(self.db, self.s.brain_dir)
+        if prep is None:
+            learning.save_cursors(self.db, learning.collect(self.db, self.s.brain_dir)[1], now)
+            return learning.NOTHING
+        model = self.s.extra.get("LEARN_MODEL", "sonnet")
+        job: dict[str, Any] = {
+            "id": "learning-now",
+            "project": "global",
+            "type": "learning",
+            "agent": None,
+            "model": model,
+            "max_turns": 3,
+            "priority": "P2",
+            "prompt": prep[0],
+        }
+        proc = self.governor.start_job(job)
+        out, err = proc.communicate(timeout=timeout)
+        result = runner.parse_result(out, err, proc.returncode, model)
+        if result.status != "ok":
+            return f"Learning run {result.status}: {result.summary[:300]}"
+        text = learning.finish(
+            self.db,
+            self.s.brain_dir,
+            result.summary,
+            prep[1],
+            self.brain_write,
+            self.brain_commit,
+            now=now,
+            tz=self.s.timezone,
+        )
+        channel = self.channels.get("learning") or self.channels.get("alerts")
+        if self.discord is not None and channel:
+            try:
+                self.discord.send(channel, text)
+            except DiscordError as exc:
+                log.warning("learning report failed: %s", exc)
+        return text
+
     def _learning_reply(self, reply: replies.Reply) -> str:
         today = self.today(self.clock())
         try:

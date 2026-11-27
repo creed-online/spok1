@@ -70,6 +70,7 @@ def start(
         raise RuntimeError("no stdin pipe")
     proc.stdin.write(prompt)
     proc.stdin.close()
+    proc.stdin = None  # closed: communicate() must not flush it (ValueError on Python 3.12)
     return proc
 
 

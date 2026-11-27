@@ -235,6 +235,18 @@ class FakeProc:
         return self.out, ""
 
 
+def test_started_job_can_be_waited_on_with_a_timeout(monkeypatch: Any) -> None:
+    import sys
+
+    from spok1_agentd import runner
+
+    code = "import sys; print(sys.stdin.read().upper())"
+    monkeypatch.setattr(runner, "command", lambda *_a: [sys.executable, "-c", code])
+    proc = runner.start(None, "sonnet", 3, ".", "hello", "tok")
+    out, _err = proc.communicate(timeout=30)  # was: ValueError on the closed stdin
+    assert out.strip() == "HELLO"
+
+
 def test_learn_now_posts_even_in_quiet_hours(tmp_path: Path) -> None:
     brain = make_brain(tmp_path)
     settings = Settings(

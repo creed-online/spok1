@@ -64,6 +64,11 @@ else
 fi
 chown -R root:root $BASE && chmod -R go-w $BASE
 echo "✓ $SRC at $(git -C $SRC rev-parse --short HEAD)"
+# If this run started from an older copy of this script, continue with the version just fetched.
+if [ -z "${SPOK1_SETUP_REEXEC:-}" ] && ! cmp -s "$0" "$SRC/vm/root-setup.sh" 2>/dev/null; then
+  echo "· continuing with the updated root-setup.sh"
+  SPOK1_SETUP_REEXEC=1 exec bash "$SRC/vm/root-setup.sh"
+fi
 
 echo "== 3. guard (VM profile)"
 cd $SRC

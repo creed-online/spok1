@@ -241,7 +241,11 @@ def test_started_job_can_be_waited_on_with_a_timeout(monkeypatch: Any) -> None:
     from spok1_agentd import runner
 
     code = "import sys; print(sys.stdin.read().upper())"
-    monkeypatch.setattr(runner, "command", lambda *_a: [sys.executable, "-c", code])
+
+    def fake_command(*_a: object) -> list[str]:
+        return [sys.executable, "-c", code]
+
+    monkeypatch.setattr(runner, "command", fake_command)
     proc = runner.start(None, "sonnet", 3, ".", "hello", "tok")
     out, _err = proc.communicate(timeout=30)  # was: ValueError on the closed stdin
     assert out.strip() == "HELLO"

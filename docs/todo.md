@@ -201,7 +201,9 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 > - [ ] You: re-authorize the bot with Manage Channels + Manage Webhooks (then the other HQ channels appear)
 > - [ ] You: healthchecks.io ping URL → `HEALTHCHECK_URL` (dead-man switch)
 > - [ ] You: `claude setup-token` on the VM → `CLAUDE_CODE_OAUTH_TOKEN` (agent-run jobs)
-> - [ ] Next: **5b**, the approval broker
+> - [x] **5b built and live (2026-11-27):** T3 broker (the guard files a request in a spool the agent can write; agentd posts a card with the action, a dry-run note, an automatic verified backup for sqlite files and a one-time code; `approve N CODE [nobackup]` / `deny N`; decisions only spok1d can write; one use within 10 min; 30-min expiry = denied). T2 uses the Discord Allow/Deny relay. `trash-put` is T1 with a 7-day purge. `remind` skill for "remind me…" from Discord
+> - [x] Self-heal: agentd restarts the manager when its Discord plugin failed to start (seen twice), P1 if that doesn't help; the CI watcher alerts when it can't read CI
+> - Checkpoint 5 so far: ✅ T3 live (DROP TABLE → card → code → verified backup → ran once) · ✅ grants (scope, expiry) · ✅ "remind me in 3 minutes" from the phone · ✅ a laptop-made job ran on the VM · ✅ replies recorded · ✅ **failing CI → P2** (alert #10, after adding Actions: Read-only to the VM token) · ⏳ dead-man alert (needs the healthchecks.io URL)
 >
 > Earlier notes (docs check, 2026-11-26):
 > - Findings: only one process can hold the bot's gateway (the manager's plugin), so agentd uses **REST only** (post, create channels/webhooks, poll replies every ~10 s; 50 req/s limit). Channel and webhook creation need **Manage Channels + Manage Webhooks** (re-authorize the bot). `claude -p` auto-denies approval prompts, so T2 steps in scheduled jobs go through **`--permission-prompt-tool`** (its schema isn't documented: test it first). `-p` JSON has `num_turns`, `usage`, `modelUsage`, `total_cost_usd`, subtype `error_max_turns`; limits print "You've hit your session limit · resets …". healthchecks.io: free 20 checks, `hc-ping.com/<uuid>`, webhook alerts.

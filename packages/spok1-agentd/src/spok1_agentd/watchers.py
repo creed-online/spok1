@@ -78,7 +78,7 @@ def disk_and_memory(root: str = "/", meminfo: Path = Path("/proc/meminfo")) -> l
 
 
 def discord_plugin_running(run: Run = run_cmd) -> bool:
-    code, _out = run(["pgrep", "-u", "spok1", "-f", "discord.*server.ts|bun server.ts"])
+    code, _out = run(["pgrep", "-u", "spok1", "-x", "bun"])
     return code == 0
 
 

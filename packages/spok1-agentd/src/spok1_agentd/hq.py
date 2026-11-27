@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from spok1_agentd.db import DB
-from spok1_agentd.discord_api import CATEGORY, TEXT, Discord
+from spok1_agentd.discord_api import CATEGORY, TEXT, Discord, DiscordError
 
 CATEGORY_NAME = "📌 HQ"
 CHANNELS = {
@@ -28,19 +28,36 @@ def ensure(discord: Discord, db: DB, guild_id: str) -> tuple[dict[str, str], lis
     by_name = {(c["name"], c["type"]): c for c in existing}
     category = by_name.get((CATEGORY_NAME, CATEGORY))
     if category is None:
-        category = discord.create_channel(guild_id, CATEGORY_NAME, CATEGORY)
-        actions.append(f"created category {CATEGORY_NAME}")
+        try:
+            category = discord.create_channel(guild_id, CATEGORY_NAME, CATEGORY)
+            actions.append(f"created category {CATEGORY_NAME}")
+        except DiscordError as exc:
+            actions.append(f"! can't create the category ({_why(exc)})")
     ids: dict[str, str] = {}
     for name, topic in CHANNELS.items():
         found = by_name.get((name, TEXT))
         if found is None:
-            found = discord.create_channel(
-                guild_id, name, TEXT, parent_id=str(category["id"]), topic=topic
-            )
-            actions.append(f"created #{name}")
+            try:
+                found = discord.create_channel(
+                    guild_id,
+                    name,
+                    TEXT,
+                    parent_id=str(category["id"]) if category else None,
+                    topic=topic,
+                )
+                actions.append(f"created #{name}")
+            except DiscordError as exc:
+                actions.append(f"! can't create #{name} ({_why(exc)})")
+                continue
         ids[name] = str(found["id"])
         db.put(f"channel:{name}", ids[name])
     return ids, actions
+
+
+def _why(exc: DiscordError) -> str:
+    if "403" in str(exc):
+        return "the bot needs the Manage Channels permission"
+    return str(exc)[:120]
 
 
 def known(db: DB) -> dict[str, str]:

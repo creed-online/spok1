@@ -213,6 +213,16 @@ class Daemon:
 
     def tick(self) -> None:
         now = self.clock()
+        if (
+            "alerts" not in self.channels
+            and self.discord is not None
+            and now - self.last.get("setup", 0) > 600
+        ):
+            self.last["setup"] = now  # retry channel setup every 10 min (e.g. after a re-authorize)
+            try:
+                self.setup_discord()
+            except DiscordError as exc:
+                log.warning("Discord setup failed: %s", exc)
         if self.due("brain", now):
             self.run(
                 ["sudo", "-n", "-u", self.s.run_as, "/opt/spok1/bin/spok1-runas", "git-pull-brain"]

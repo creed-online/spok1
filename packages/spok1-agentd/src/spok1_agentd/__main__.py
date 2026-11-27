@@ -64,8 +64,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"sent alert #{alert_id}")
         return 0
     if cmd == "run":
-        if not d.channels:
-            d.setup_discord()
+        try:
+            for line in d.setup_discord():
+                logging.info("setup: %s", line)
+        except DiscordError as exc:  # keep running: watchers, deadman and reminders still work
+            logging.warning("Discord setup failed: %s", exc)
         d.run_forever()
         return 0
     print("usage: spok1-agentd run | setup | status | test-alert", file=sys.stderr)

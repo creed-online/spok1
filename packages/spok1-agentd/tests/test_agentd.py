@@ -548,3 +548,16 @@ def test_wrapper_only_allows_fixed_subcommands(path: str) -> None:
         and 'case "$cwd" in /home/spok1/work|/home/spok1/projects/*)' in text
     )
     assert "eval" not in text and "bash -c" not in text
+
+
+def test_hq_without_manage_channels_reuses_and_reports() -> None:
+    from spok1_agentd.discord_api import DiscordError
+
+    class NoPerm(FakeDiscord):
+        def create_channel(self, *a: Any, **k: Any) -> dict[str, Any]:
+            raise DiscordError("POST /guilds/g/channels: HTTP 403 Missing Permissions")
+
+    db = DB(":memory:")
+    ids, actions = hq.ensure(NoPerm(), db, "g")  # type: ignore[arg-type]
+    assert ids == {"alerts": "77"}  # the existing #alerts still works
+    assert any("Manage Channels" in a for a in actions)

@@ -585,3 +585,35 @@ def test_bot_watch_restarts_then_alerts() -> None:
     assert out and out[0].priority == "P1"  # restart didn't help within 10 min
     plugin_up["v"] = True
     assert w.check(t + 240, run) == []
+
+
+def test_ci_watcher_reports_when_it_cannot_see(tmp_path: Path) -> None:
+    (tmp_path / "projects").mkdir()
+    (tmp_path / "projects" / "registry.yaml").write_text(
+        dump_yaml(
+            {
+                "version": 1,
+                "projects": [
+                    {
+                        "id": "sandbox",
+                        "name": "S",
+                        "type": "test",
+                        "created": "2026-11-26",
+                        "repos": ["https://github.com/o/r"],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    run = fake_run(
+        {
+            "gh-ci": (
+                1,
+                "failed to get runs: HTTP 403: Resource not accessible by personal access token",
+            ),
+            "gh-prs": (0, "[]"),
+        }
+    )
+    out = watchers.ci_and_prs(tmp_path, at("12:00"), run)
+    assert len(out) == 1 and out[0].priority == "P2" and "Actions: Read-only" in out[0].title

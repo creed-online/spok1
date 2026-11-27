@@ -232,7 +232,21 @@ def ci_and_prs(brain: Path, now: float, run: Run = run_cmd) -> list[Alert]:
     out: list[Alert] = []
     for project, repo in repos_from_registry(brain):
         code, text = run([*RUNAS, "gh-ci", repo])
-        if code == 0:
+        if code != 0 or text.lstrip().startswith("failed"):
+            # a watcher that can't see is a broken monitor: say so (once a day), don't stay quiet
+            hint = " (the VM's GitHub token needs Actions: Read-only)" if "403" in text else ""
+            day = int(now // 86400)
+            out.append(
+                Alert(
+                    "P2",
+                    f"Can't read CI for {repo}{hint}",
+                    text.strip()[:300],
+                    f"ci-blind:{repo}:{day}",
+                    project,
+                    "ci",
+                )
+            )
+        elif code == 0:
             try:
                 runs = cast(list[dict[str, Any]], json.loads(text or "[]"))
             except ValueError:

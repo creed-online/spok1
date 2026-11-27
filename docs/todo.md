@@ -210,35 +210,35 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 > - **Open decisions (proposed: yes to all three):** (1) build **5a** (runtime) first, then **5b** (approval broker); (2) run agentd as its own Linux user **`spok1d`**, so agents can't read or forge approvals, grants or the headless token; (3) agentd reads replies by **REST polling** (no Claude usage).
 > - **Owner prep:** re-authorize the bot with the 2 extra permissions; a healthchecks.io check; on the VM, `claude setup-token` and the Mem0 `spok1-vm` key into agentd's protected settings file.
 
-- [ ] `spok1-agentd` skeleton: asyncio service, `agentd.service` (`Restart=always`), structured logs
-- [ ] `learning.db` schema: events, episodes, jobs, alerts, stats, audit
-- [ ] Scheduler: `brain/jobs/*.yaml` pulled every 2 min → SQLite; one-off, cron and natural-language jobs; job types reminder, agent-run and digest
-- [ ] Notifier: P1/P2/P3, quiet hours, dedup with counts, at most 20 per hour then a digest, short alert IDs
-- [ ] Reply and reaction parsing: `ack`, `snooze`, `noise`, `do it`, ✅ ❌ 🔕 🗑️
-- [ ] Built-in watchers: job/agent failure, CI, PR waiting more than 24 h, disk and memory, Claude login expiry (10 days ahead), usage limits, manager health
-- [ ] Governor: priority queue, at most 3 running at once, per-task, per-project and daily budgets, rate-limit back-off
-- [ ] **Approval broker**
-  - [ ] Discord approval cards (embeds) with action, reason, impact, usage, cost and undo
-  - [ ] `approve` / `deny` / `ask` replies and ✅/❌ reactions (never enough for T3)
-  - [ ] T3: one-time confirm code, dry-run output, verified backup ID
-  - [ ] Timeout after 30 min counts as a denial; the task can be resumed later
-  - [ ] Standing grants from `grants.yaml` (scope, limit, expiry, `revoke`); never for T3
-  - [ ] Credential injection for a single approved command, removed afterwards
-- [ ] `spok1-core` vault: AES-256-GCM, entries tagged by project
-- [ ] `~/.trash` (7 days) in place of `rm`
-- [ ] Dead-man switch: ping healthchecks.io every 5 min, alert on Discord when it stops
-- [ ] `/remind` and `/schedule` skills; "remember X" sends facts to Mem0 and dated items to reminders
-- [ ] Unit tests for agentd
+- [x] `spok1-agentd` service: one loop (no asyncio needed), `agentd.service` (`Restart=always`), logs in journald
+- [x] `learning.db`: jobs, runs, alerts, events, approvals (the audit log stays in the guard's hash-chained JSONL)
+- [x] Scheduler: brain jobs pulled every 2 min → SQLite; one-off and cron; reminder / agent-run / digest; natural language via the `remind` skill (the manager writes the job)
+- [x] Notifier: P1/P2/P3, quiet hours, dedup with counts, at most 20 per hour, short alert IDs, daily digest
+- [x] Reply parsing: `ack`, `snooze`, `noise`, `do it` (owner only). Reactions (✅ ❌ 🔕 🗑️) not built: text replies cover them
+- [x] Built-in watchers: job failure, CI, PR waiting > 24 h, disk and memory, login expiry (10 days / 2 days), usage limit (governor), manager health, Discord bot self-heal
+- [x] Governor: priority queue, **1** at a time on the 1 GB VM, daily budget, 30-min back-off on a usage limit (per-task and per-project budgets: Phase 6, with the auditor's real usage numbers)
+- [x] **Approval broker**
+  - [x] Approval cards with the action, reason, folder, dry-run note and backup (plain text, not embeds); T2 uses the Discord Allow/Deny relay
+  - [x] `approve N CODE` / `deny N`; a reaction never approves T3. (`ask N` not built: ask the manager in the DM instead)
+  - [x] T3: one-time confirm code, dry-run view, automatic verified backup (sqlite files), `nobackup` must be explicit
+  - [x] Timeout after 30 min = denied; the agent retries the exact command once after approval
+  - [x] Standing grants: owner-written, admin-only `grants.toml` (scope by rule, folder, command text; expiry ≤ 30 days); never T3/FORBIDDEN; revoke = delete the block
+  - [ ] Credential injection for one approved command: **moved to Phase 8** (needed first by connectors)
+- [ ] `spok1-core` vault (AES-256-GCM, per-project entries): **moved to Phase 8** (connector tokens)
+- [x] Trash instead of `rm`: `trash-put` is T1, trash-cli with a daily 7-day purge
+- [x] Dead-man switch: healthchecks.io ping every 5 min (`/fail` on errors), DOWN alert on Discord + email
+- [x] `remind` skill (covers scheduling too); remember-X → Mem0, dated items → Mem0 + reminder
+- [x] Tests: 34 for agentd and the broker (357 in the repo)
 
-**✅ Checkpoint 5**
-- [ ] A T2 action produces a Discord card; `deny` stops it, and no answer times out as a denial
-- [ ] A T3 action is refused without the confirm code and a verified backup
-- [ ] A standing grant allows exactly its scope and expires on time
-- [ ] "Remind me in 10 minutes to call the CA" arrives on time
-- [ ] A job created on the laptop runs on the VM
-- [ ] A deliberately failing CI run causes a P2 ping
-- [ ] Stopping the VM triggers the dead-man alert
-- [ ] `noise <id>` is recorded
+**✅ Checkpoint 5: PASSED 2026-11-27**
+- [x] A T2 action produces a Discord card (🔐 Allow/Deny relay); deny stops it, and no answer means no
+- [x] A T3 action is refused without the confirm code and a verified backup (live: sqlite table drop → card → code → backup verified → ran once)
+- [x] A standing grant allows exactly its scope and expires on time (live + tests)
+- [x] Remind-me-in-3-minutes from the phone arrived on time
+- [x] A job created on the laptop runs on the VM
+- [x] A deliberately failing CI run causes a P2 ping (alert #10)
+- [x] Stopping the VM triggers the dead-man alert (Discord + email), and everything came back on start
+- [x] Replies are recorded as events (`ack` live; `noise` uses the same path, tested)
 
 ## Phase 6: The learning engine and the full auditor
 
@@ -303,6 +303,8 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 
 **Check the docs first:** each connector's official MCP server or API, the Meta Graph API requirements (Professional account linked to a Page, token lifetime).
 
+- [ ] `spok1-core` vault: AES-256-GCM, entries tagged by project (moved here from Phase 5)
+- [ ] The broker injects write/admin credentials for ONE approved command only, then removes them (moved here from Phase 5)
 - [ ] `/connect` flow: prerequisites → official sign-in link → vault → read-only test → agent permission mapping (T2)
 - [ ] `connectors/registry.yaml` (tool → tier → agents), enforced by the guard
 - [ ] Token-expiry watcher; `disconnect <service>`

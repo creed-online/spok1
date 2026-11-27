@@ -561,3 +561,27 @@ def test_hq_without_manage_channels_reuses_and_reports() -> None:
     ids, actions = hq.ensure(NoPerm(), db, "g")  # type: ignore[arg-type]
     assert ids == {"alerts": "77"}  # the existing #alerts still works
     assert any("Manage Channels" in a for a in actions)
+
+
+def test_bot_watch_restarts_then_alerts() -> None:
+    calls: list[list[str]] = []
+    plugin_up = {"v": False}
+
+    def run(argv: list[str]) -> tuple[int, str]:
+        calls.append(argv)
+        if "is-active" in argv:
+            return 0, "active"
+        if argv[0] == "pgrep":
+            return (0, "1") if plugin_up["v"] else (1, "")
+        return 0, ""
+
+    w = watchers.BotWatch()
+    t = at("12:00")
+    assert w.check(t, run) == []  # one miss: wait
+    out = w.check(t + 60, run)
+    assert out[0].priority == "P3" and any("restart" in c for c in calls)
+    w.check(t + 120, run)
+    out = w.check(t + 180, run)
+    assert out and out[0].priority == "P1"  # restart didn't help within 10 min
+    plugin_up["v"] = True
+    assert w.check(t + 240, run) == []

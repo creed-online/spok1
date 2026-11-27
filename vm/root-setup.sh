@@ -103,6 +103,8 @@ cat > /etc/sudoers.d/spok1-agentd <<'SUDO'
 # agentd may run exactly one root-owned wrapper as spok1 (see /opt/spok1/bin/spok1-runas)
 Defaults:spok1d env_keep += "CLAUDE_CODE_OAUTH_TOKEN"
 spok1d ALL=(spok1) NOPASSWD: /opt/spok1/bin/spok1-runas
+# self-heal: restart the manager when its Discord plugin failed to start
+spok1d ALL=(root) NOPASSWD: /usr/bin/systemctl restart claude-manager
 SUDO
 chmod 0440 /etc/sudoers.d/spok1-agentd
 visudo -cf /etc/sudoers.d/spok1-agentd >/dev/null && echo "✓ spok1d, /var/lib/spok1d, /etc/spok1/agentd.env, sudo wrapper"

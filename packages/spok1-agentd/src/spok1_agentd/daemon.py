@@ -69,6 +69,7 @@ class Daemon:
             clock=clock,
         )
         self.jobs: dict[str, dict[str, Any]] = {}
+        self.bot_watch = watchers.BotWatch()
         self.broker = Broker(
             db,
             discord,
@@ -274,6 +275,7 @@ class Daemon:
                 log.warning("poll failed: %s", exc)
         if self.due("manager", now):
             self.raise_all(watchers.manager(self.run))
+            self.raise_all(self.bot_watch.check(now, self.run))
         if self.due("disk", now):
             self.raise_all(watchers.disk_and_memory())
         if self.due("login", now):

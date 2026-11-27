@@ -77,6 +77,52 @@ def disk_and_memory(root: str = "/", meminfo: Path = Path("/proc/meminfo")) -> l
     return out
 
 
+def discord_plugin_running(run: Run = run_cmd) -> bool:
+    code, _out = run(["pgrep", "-u", "spok1", "-f", "discord.*server.ts|bun server.ts"])
+    return code == 0
+
+
+class BotWatch:
+    """The manager can be 'active' while its Discord plugin failed to start (seen twice on the
+    1 GB VM). Two misses in a row → restart the manager (allowed by one sudo rule); if that
+    didn't help within 10 minutes → P1 alert."""
+
+    def __init__(self) -> None:
+        self.misses = 0
+        self.last_restart = 0.0
+
+    def check(self, now: float, run: Run = run_cmd) -> list[Alert]:
+        _code, out = run(["systemctl", "is-active", "claude-manager"])
+        if out.strip() != "active" or discord_plugin_running(run):
+            self.misses = 0
+            return []
+        self.misses += 1
+        if self.misses < 2:
+            return []
+        if now - self.last_restart > 600:
+            self.last_restart = now
+            self.misses = 0
+            run(["sudo", "-n", "/usr/bin/systemctl", "restart", "claude-manager"])
+            return [
+                Alert(
+                    "P3",
+                    "Discord bot was offline: manager restarted",
+                    "The Discord plugin wasn't running; agentd restarted claude-manager.",
+                    f"bot:restart:{int(now // 3600)}",
+                    source="manager",
+                )
+            ]
+        return [
+            Alert(
+                "P1",
+                "Discord bot is offline",
+                "The Discord plugin keeps failing to start even after a restart. Check: ssh spok1@spok1-vm, tmux attach -t manager, /mcp.",
+                "watch:bot",
+                source="manager",
+            )
+        ]
+
+
 def manager(run: Run = run_cmd) -> list[Alert]:
     _code, out = run(["systemctl", "is-active", "claude-manager"])
     state = out.strip() or "unknown"

@@ -1,7 +1,7 @@
 """Read the owner's replies in agentd's channels by REST polling (no gateway, no Claude usage).
 
 Only messages from the owner's Discord ID count. Commands: ack N · snooze N 2h · noise N · do it N.
-(Approval replies, `approve N [code]` / `deny N`, are added by the broker in Phase 5b.)
+Approvals: approve N CODE [nobackup] · deny N.
 """
 
 from __future__ import annotations
@@ -13,7 +13,9 @@ from typing import Any, Protocol, cast
 
 from spok1_agentd.db import DB
 
-COMMAND = re.compile(r"^\s*(ack|noise|do it|snooze)\s+#?(\d+)(?:\s+(\S+))?\s*$", re.IGNORECASE)
+COMMAND = re.compile(
+    r"^\s*(ack|noise|do it|snooze|approve|deny)\s+#?(\d+)(?:\s+(.+?))?\s*$", re.IGNORECASE
+)
 
 
 @dataclass

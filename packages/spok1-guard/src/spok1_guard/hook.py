@@ -71,20 +71,55 @@ def decide(
         active, _problems = grants.load(grants.default_path(ctx.policy_path))
         command = str(tool_input.get("command") or tool_input.get("file_path") or "")
         verdict = grants.apply(verdict, active, ctx.n(ctx.cwd), command, ctx.n)
+    if verdict.tier == Tier.T3:
+        from spok1_guard import broker
+
+        if broker.enabled():
+            h = broker.action_hash(tool_name, tool_input, ctx.n(ctx.cwd))
+            state = broker.check(h)
+            if state == "approved":
+                return Verdict(
+                    Tier.T1, f"approved by the owner: {verdict.reason}", f"broker:{h}"
+                ), None
+            if state == "denied":
+                return verdict, _output(
+                    verdict, broker_note="The owner DENIED this. Don't retry it."
+                )
+            from spok1_guard import audit
+
+            summary = audit.summarise(tool_name, tool_input)
+            broker.request(
+                h,
+                {
+                    "tool": tool_name,
+                    "summary": summary,
+                    "cwd": ctx.cwd,
+                    "rule": verdict.rule,
+                    "reason": verdict.reason,
+                    "agent": str(data.get("agent_type") or "main"),
+                    "session": str(data.get("session_id") or ""),
+                },
+            )
+            note = (
+                f"An approval card (request {h[:8]}) is going to the owner's #approvals. Tell the "
+                "owner what you want to do and why, then wait. When they say it's approved, retry "
+                "this EXACT command once (it's allowed for 10 minutes)."
+            )
+            return verdict, _output(verdict, broker_note=note)
     return verdict, _output(verdict)
 
 
-def _output(verdict: Verdict) -> dict[str, Any] | None:
+def _output(verdict: Verdict, broker_note: str = "") -> dict[str, Any] | None:
     if verdict.tier <= Tier.T1:
         return None
     if verdict.tier == Tier.T2:
         decision, reason = "ask", f"spok1 guard · T2 (needs approval): {verdict.reason}"
     elif verdict.tier == Tier.T3:
         decision = "deny"
-        reason = (
-            f"spok1 guard · T3 (two-key): {verdict.reason}. Not allowed through an agent: it "
-            "needs approval with a confirm code, a verified backup and a dry run. Ask the "
-            "owner to run it by hand, or wait for the approval broker."
+        reason = f"spok1 guard · T3 (two-key): {verdict.reason}. " + (
+            broker_note
+            or "Not allowed through an agent: it needs approval with a confirm code, a verified "
+            "backup and a dry run. Ask the owner to run it by hand."
         )
     else:
         decision = "deny"

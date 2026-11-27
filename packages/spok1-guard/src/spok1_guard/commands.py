@@ -422,7 +422,21 @@ def _classify_program(argv: list[str], ctx: Ctx, cmd: shell.SimpleCommand | None
             return T0_OK
         inner_v = classify_argv([*inner, "__XARGS__"], ctx)
         return inner_v
-    if prog in ("rm", "rmdir", "unlink", "shred", "del", "erase", "rd", "trash", "trash-put"):
+    if prog in ("trash-put", "trash", "gio") and (prog != "gio" or argv[1:2] == ["trash"]):
+        # Moving to the trash (kept 7 days) is reversible: T1, unless the path is protected/secret
+        targets = [a for a in _args(argv) if a not in ("--", "trash")]
+        if not targets:
+            return v(Tier.T2, f"{prog} with no explicit targets", "trash.unknown")
+        out: list[Verdict] = []
+        for t in targets:
+            d = delete_target(t, ctx, "moves to the trash")
+            out.append(
+                d
+                if d.tier == Tier.FORBIDDEN or d.tier <= Tier.T1
+                else v(Tier.T1, f"moves {t} to the trash (restorable for 7 days)", "trash")
+            )
+        return worst(out)
+    if prog in ("rm", "rmdir", "unlink", "shred", "del", "erase", "rd"):
         targets = [a for a in _args(argv) if a != "--"]
         if not targets:
             return v(Tier.T3, f"{prog} with no explicit targets", "delete.unknown")

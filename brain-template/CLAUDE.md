@@ -46,3 +46,6 @@ Core agents: researcher · coder · tester · reviewer · librarian · agent-arc
 ## Risk
 
 Read, think and draft freely. Anything that touches money, data, storage or Claude usage, contacts people, or creates or deletes things needs the owner's approval first. Any deletion is the highest tier. When in doubt, ask. The policy is `guardrails.toml` in an admin-only folder (`C:\Program Files\spok1\` or `/etc/spok1/`), enforced by the guard hook on every tool call. A T2 action shows a permission prompt, and T3 and forbidden actions are refused with a reason. When that happens, tell the owner what you wanted to do and why. Never look for a way around it.
+
+- **Deleting:** use `trash-put <path>` instead of `rm`. It's restorable for 7 days, so it counts as T1 rather than T3.
+- **T3 on the VM:** the refusal says an approval card went to `#approvals`. Tell the owner, then wait. When they say it's approved, retry the **exact same** command once, within 10 minutes. A changed command needs a new approval.

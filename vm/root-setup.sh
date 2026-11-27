@@ -108,6 +108,22 @@ chmod 0440 /etc/sudoers.d/spok1-agentd
 visudo -cf /etc/sudoers.d/spok1-agentd >/dev/null && echo "✓ spok1d, /var/lib/spok1d, /etc/spok1/agentd.env, sudo wrapper"
 install -m 0644 $SRC/vm/systemd/agentd.service /etc/systemd/system/agentd.service
 
+echo "== 4b. approval broker folders + trash"
+# requests: the guard (as spok1) writes here; agentd (spok1d) reads and cleans up (setgid + sticky)
+install -d -m 0755 /var/spool/spok1
+install -d -m 3770 -o spok1d -g spok1 /var/spool/spok1/requests
+# decisions: ONLY agentd can write; spok1 (the agents) can only read
+install -d -m 0755 -o spok1d -g spok1d /var/lib/spok1-approvals
+install -d -m 0700 -o spok1d -g spok1d /var/lib/spok1d/backups
+DEBIAN_FRONTEND=noninteractive apt-get install -y -q trash-cli >/dev/null
+cat > /etc/cron.daily/spok1-trash <<'CRON'
+#!/bin/sh
+# empty spok1's trash of files deleted more than 7 days ago
+sudo -u spok1 -H trash-empty -f 7 >/dev/null 2>&1 || true
+CRON
+chmod 0755 /etc/cron.daily/spok1-trash
+echo "✓ broker spool + approvals, trash-cli (7-day purge)"
+
 echo "== 5. claude-manager.service"
 install -m 0644 $SRC/vm/systemd/claude-manager.service /etc/systemd/system/claude-manager.service
 systemctl daemon-reload

@@ -17,6 +17,7 @@ from zoneinfo import ZoneInfo
 import httpx
 
 from spok1_agentd import hq, replies, runner, scheduler, watchers
+from spok1_agentd.broker import Broker
 from spok1_agentd.db import DB
 from spok1_agentd.discord_api import Discord, DiscordError
 from spok1_agentd.governor import Governor
@@ -68,6 +69,13 @@ class Daemon:
             clock=clock,
         )
         self.jobs: dict[str, dict[str, Any]] = {}
+        self.broker = Broker(
+            db,
+            discord,
+            settings.owner_id,
+            self.channels.get("approvals") or self.channels.get("alerts"),
+            clock=clock,
+        )
         self.governor = Governor(
             db, start_job or self._start_job, max_parallel=settings.max_parallel_jobs, clock=clock
         )
@@ -79,6 +87,7 @@ class Daemon:
         ids, actions = hq.ensure(self.discord, self.db, self.s.guild_id)
         self.channels.update(ids)
         self.notifier.channels = self.channels
+        self.broker.channel = self.channels.get("approvals") or self.channels.get("alerts")
         return actions
 
     # ── jobs ───────────────────────────────────────────────────────────
@@ -174,6 +183,14 @@ class Daemon:
 
     # ── replies ────────────────────────────────────────────────────────
     def _handle_reply(self, reply: replies.Reply) -> str | None:
+        if reply.verb in ("approve", "deny"):
+            text = self.broker.decide(reply.alert_id, reply.verb, reply.arg.split())
+            if self.discord is not None:
+                try:
+                    self.discord.send(reply.channel_id, text, reply_to=reply.message_id)
+                except DiscordError as exc:
+                    log.warning("reply ack failed: %s", exc)
+            return text
         text = self.notifier.apply_reply(reply.verb, reply.alert_id, reply.arg)
         if reply.verb == "do it":
             row = self.db.one("SELECT * FROM alerts WHERE id=?", (reply.alert_id,))
@@ -233,12 +250,24 @@ class Daemon:
                     "P3", "Bad job file", p, source="scheduler", dedup_key=f"badjob:{p}"
                 )
         self._due_jobs(now)
+        try:
+            self.broker.scan()
+            for aid in self.broker.expire():
+                self.notifier.notify(
+                    "P3",
+                    f"Approval #{aid} expired (denied)",
+                    "No answer within 30 minutes.",
+                    source="broker",
+                    dedup_key=f"expired:{aid}",
+                )
+        except (DiscordError, OSError) as exc:
+            log.warning("broker failed: %s", exc)
         for job, result in self.governor.tick(self.jobs):
             self._finished(job, result)
         if self.due("poll", now) and self.discord is not None:
-            channels = [
-                c for c in (self.channels.get("alerts"), self.channels.get("approvals")) if c
-            ]
+            channels = sorted(
+                {c for c in (self.channels.get("alerts"), self.channels.get("approvals")) if c}
+            )
             try:
                 replies.poll(self.db, self.discord, channels, self.s.owner_id, self._handle_reply)
             except DiscordError as exc:

@@ -242,20 +242,20 @@ This tracks building spok1, phase by phase. The spec is [prd.md](prd.md), the di
 
 ## Phase 6: The learning engine and the full auditor
 
-- [ ] Signal capture from explicit, outcome and process events; laptop signals come in through `inbox/`
+- [x] Signal capture from explicit, outcome and process events; laptop signals come in through `inbox/` (6a: feedback.md, inbox episodes, alert replies, job outcomes)
 - [ ] Reflexion debriefs (the librarian writes an episode after each task)
 - [ ] Scored retrieval: Mem0 relevance × recency decay (30-day half-life) × importance, with MMR; hybrid FTS5 + vector with RRF; reinforcement; archive after 90 days
-- [ ] Nightly consolidation: episodes → facts → belief candidates, dedup, contradiction flags
-- [ ] Belief model: Beta(α, β); promote at ≥0.8 with ≥3 pieces of evidence, demote below 0.6; regenerate `profile.md` (300 lines or fewer)
-- [ ] Active learning: up to 3 questions a day, ranked by uncertainty × impact
+- [x] Nightly consolidation: episodes → facts → belief candidates, dedup, contradiction flags (6a: one claude -p proposes JSON, plain code checks and applies; facts go to Mem0 once MEM0_API_KEY is wired, until then they are listed in the report)
+- [x] Belief model: Beta(α, β); promote at ≥0.8 with ≥3 pieces of evidence, demote below 0.6; regenerate `profile.md` (120 lines or fewer)
+- [x] Active learning: up to 3 open questions, answered with `yes N` / `no N`, expire after 3 days (ranking by uncertainty × impact: 6b)
 - [ ] Skill lifecycle: candidate → trial → active (at least 0.7 after 3 uses) → rewritten (below 0.5 after 5) → retired (unused 60 days); stats in `meta.yaml`
 - [ ] Diff learning: agent's version vs. your final version → style beliefs
 - [ ] Evals: golden tasks harvested from real work, rubrics, an opus judge plus deterministic checks, sampled runs
 - [ ] Weekly prompt evolution (GEPA-style), gated by evals
 - [ ] Self-tuning watchers (precision from ack/noise/do it) and model routing (cheapest at equal success)
-- [ ] Auto-commit with `changelog.md`; `revert <item>`
-- [ ] Nightly "What I learned today" and the weekly growth report (§5.4 metrics)
-- [ ] Learning limits enforced: it can't create anything that uses usage or reaches outside the brain, and can't touch the guardrails
+- [x] Auto-commit with `changelog.md`; `revert <item>` (through the fixed `brain-write` / `brain-commit` wrapper subcommands)
+- [ ] Nightly "What I learned today" and the weekly growth report (§5.4 metrics) (nightly: done in 6a, held until quiet hours end; weekly: 6b)
+- [x] Learning limits enforced: it can't create anything that uses usage or reaches outside the brain, and can't touch the guardrails (the wrapper only writes beliefs.yaml, profile.md and changelog.md)
 - [ ] **Full auditor**
   - [ ] Usage accounting per task (turns, tokens, model, outcome)
   - [ ] Pre-flight check with haiku for plans over 20 units

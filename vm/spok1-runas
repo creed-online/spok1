@@ -7,6 +7,8 @@
 #   auth-status
 #   gh-ci <owner/repo>      latest run on the default branch (JSON)
 #   gh-prs <owner/repo>     open PRs (JSON)
+#   brain-write <file>      replace beliefs.yaml, profile.md or changelog.md (stdin)
+#   brain-commit "learning: …"  commit those three files and push
 set -euo pipefail
 [ "$(id -un)" = spok1 ] || { echo "must run as spok1" >&2; exit 2; }
 export HOME=/home/spok1
@@ -33,6 +35,24 @@ case "${1:-}" in
   git-pull-brain)
     exec git -C /home/spok1/brain pull -q --ff-only
     ;;
+  brain-write)
+    # the learning job may replace ONLY these curated files (content on stdin)
+    case "${2:-}" in beliefs.yaml|profile.md|changelog.md) ;; *) echo "file not allowed" >&2; exit 2 ;; esac
+    tmp="$(mktemp /home/spok1/brain/.learn.XXXXXX)"
+    head -c 1000000 > "$tmp"
+    chmod 0644 "$tmp"   # agentd (group spok1) reads these back
+    mv "$tmp" "/home/spok1/brain/$2"
+    ;;
+  brain-commit)
+    msg="${2:-learning: nightly update}"
+    [[ "$msg" =~ ^learning:\ [[:print:]]{1,200}$ ]] || { echo "bad message" >&2; exit 2; }
+    cd /home/spok1/brain
+    git add beliefs.yaml profile.md changelog.md
+    git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
+    git commit -q -m "$msg"
+    git pull -q --rebase && git push -q
+    git rev-parse --short HEAD
+    ;;
   auth-status)
     exec claude auth status
     ;;
@@ -46,6 +66,6 @@ case "${1:-}" in
     exec gh pr list -R "$2" --state open --json number,title,url,createdAt,isDraft
     ;;
   *)
-    echo "usage: spok1-runas claude-job|git-pull-brain|auth-status|gh-ci|gh-prs" >&2; exit 2
+    echo "usage: spok1-runas claude-job|git-pull-brain|brain-write|brain-commit|auth-status|gh-ci|gh-prs" >&2; exit 2
     ;;
 esac

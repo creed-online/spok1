@@ -44,6 +44,16 @@ def run_cmd(argv: list[str], timeout: int = 60) -> tuple[int, str]:
     return p.returncode, (p.stdout or p.stderr)
 
 
+def run_with_input(argv: list[str], data: str, timeout: int = 120) -> tuple[int, str]:
+    try:
+        p = subprocess.run(  # noqa: S603
+            argv, input=data, capture_output=True, text=True, timeout=timeout, check=False
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return 1, str(exc)
+    return p.returncode, (p.stdout or p.stderr)
+
+
 def disk_and_memory(root: str = "/", meminfo: Path = Path("/proc/meminfo")) -> list[Alert]:
     out: list[Alert] = []
     usage = shutil.disk_usage(root)

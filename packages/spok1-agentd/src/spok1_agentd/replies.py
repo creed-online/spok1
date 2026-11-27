@@ -2,6 +2,7 @@
 
 Only messages from the owner's Discord ID count. Commands: ack N · snooze N 2h · noise N · do it N.
 Approvals: approve N CODE [nobackup] · deny N.
+Learning: revert N (undo change #N) · yes N / no N (answer question QN).
 """
 
 from __future__ import annotations
@@ -14,7 +15,8 @@ from typing import Any, Protocol, cast
 from spok1_agentd.db import DB
 
 COMMAND = re.compile(
-    r"^\s*(ack|noise|do it|snooze|approve|deny)\s+#?(\d+)(?:\s+(.+?))?\s*$", re.IGNORECASE
+    r"^\s*(ack|noise|do it|snooze|approve|deny|revert|yes|no)\s+#?(\d+)(?:\s+(.+?))?\s*$",
+    re.IGNORECASE,
 )
 
 

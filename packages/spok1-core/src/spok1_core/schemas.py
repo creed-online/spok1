@@ -96,6 +96,7 @@ class Job(_Strict):
     agent: str | None = None  # agent-run / digest
     prompt: str | None = None
     max_turns: int | None = Field(default=None, ge=1)
+    model: Literal["haiku", "sonnet", "opus"] = "sonnet"
     priority: Literal["P1", "P2", "P3"] = "P2"
     enabled: bool = True
 

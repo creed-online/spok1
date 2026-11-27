@@ -1,0 +1,21 @@
+[Unit]
+Description=spok1 agentd (scheduler, watchers, notifier, governor)
+After=network-online.target claude-manager.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=spok1d
+Group=spok1d
+Environment=SPOK1D_ENV=/etc/spok1/agentd.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/spok1/venv/bin/spok1-agentd run
+Restart=always
+RestartSec=10
+# No ProtectHome/ProtectSystem: agent jobs (sudo -u spok1, a child of this service) inherit its
+# mount namespace and must be able to write spok1's home. agentd itself is plain Python.
+MemoryMax=200M
+OOMScoreAdjust=200
+
+[Install]
+WantedBy=multi-user.target

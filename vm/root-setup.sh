@@ -72,10 +72,41 @@ $BASE/bin/uv sync --locked --no-dev -q
 PATH="$BASE/bin:$PATH" $BASE/venv/bin/spok1 guard install --profile vm
 chown -R root:root $BASE && chmod -R go-w $BASE
 
-echo "== 4. claude-manager.service"
+echo "== 4. agentd user, state, settings, sudo wrapper"
+id spok1d >/dev/null 2>&1 || useradd --system --home-dir /var/lib/spok1d --shell /usr/sbin/nologin spok1d
+usermod -aG spok1 spok1d          # read spok1's brain (job files, registry); not its 0600 secrets
+install -d -m 0700 -o spok1d -g spok1d /var/lib/spok1d
+install -d -m 0755 /etc/spok1
+if [ ! -f /etc/spok1/agentd.env ]; then
+  install -m 0600 -o spok1d -g spok1d /dev/null /etc/spok1/agentd.env
+  cat > /etc/spok1/agentd.env <<'ENV'
+# spok1 agentd settings. SECRETS: readable only by spok1d (0600). Edit with: sudo nano /etc/spok1/agentd.env
+DISCORD_BOT_TOKEN=
+DISCORD_GUILD_ID=
+DISCORD_OWNER_ID=
+HEALTHCHECK_URL=
+CLAUDE_CODE_OAUTH_TOKEN=
+MEM0_API_KEY=
+TIMEZONE=Asia/Kolkata
+QUIET_HOURS=23:00-07:30
+EOD_REPORT=19:00
+ENV
+  chown spok1d:spok1d /etc/spok1/agentd.env && chmod 0600 /etc/spok1/agentd.env
+fi
+install -m 0755 -o root -g root $SRC/vm/spok1-runas $BASE/bin/spok1-runas
+cat > /etc/sudoers.d/spok1-agentd <<'SUDO'
+# agentd may run exactly one root-owned wrapper as spok1 (see /opt/spok1/bin/spok1-runas)
+Defaults:spok1d env_keep += "CLAUDE_CODE_OAUTH_TOKEN"
+spok1d ALL=(spok1) NOPASSWD: /opt/spok1/bin/spok1-runas
+SUDO
+chmod 0440 /etc/sudoers.d/spok1-agentd
+visudo -cf /etc/sudoers.d/spok1-agentd >/dev/null && echo "✓ spok1d, /var/lib/spok1d, /etc/spok1/agentd.env, sudo wrapper"
+install -m 0644 $SRC/vm/systemd/agentd.service /etc/systemd/system/agentd.service
+
+echo "== 5. claude-manager.service"
 install -m 0644 $SRC/vm/systemd/claude-manager.service /etc/systemd/system/claude-manager.service
 systemctl daemon-reload
-systemctl enable claude-manager.service >/dev/null
-echo "✓ enabled (it starts once spok1 has run vm/bootstrap.sh and /login)"
+systemctl enable claude-manager.service agentd.service >/dev/null
+echo "✓ enabled claude-manager + agentd (agentd starts working once /etc/spok1/agentd.env is filled in)"
 echo
 echo "Done. Next, as spok1: ssh spok1@spok1-vm, then: bash ~/spok1/vm/bootstrap.sh"

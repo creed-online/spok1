@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# /opt/spok1/bin/spok1-runas: the ONLY thing agentd (user spok1d) may run as spok1 (sudoers).
+# Root-owned. Each subcommand is fixed; nothing here runs arbitrary shell.
+#
+#   claude-job <cwd> <model> <max_turns> [agent]   prompt on stdin; needs CLAUDE_CODE_OAUTH_TOKEN
+#   git-pull-brain
+#   auth-status
+#   gh-ci <owner/repo>      latest run on the default branch (JSON)
+#   gh-prs <owner/repo>     open PRs (JSON)
+set -euo pipefail
+[ "$(id -un)" = spok1 ] || { echo "must run as spok1" >&2; exit 2; }
+export HOME=/home/spok1
+export PATH="/home/spok1/.local/bin:/home/spok1/.bun/bin:/usr/local/bin:/usr/bin:/bin:/home/spok1/spok1/.venv/bin"
+unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN
+REPO_RE='^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'
+
+case "${1:-}" in
+  claude-job)
+    cwd="$2"; model="$3"; turns="$4"; agent="${5:-}"
+    case "$model" in haiku|sonnet|opus) ;; *) echo "bad model" >&2; exit 2 ;; esac
+    [[ "$turns" =~ ^[0-9]+$ ]] && [ "$turns" -le 200 ] || { echo "bad max_turns" >&2; exit 2; }
+    case "$cwd" in /home/spok1/work|/home/spok1/projects/*) ;; *) echo "bad cwd" >&2; exit 2 ;; esac
+    [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] || { echo "no headless token" >&2; exit 2; }
+    cd "$cwd"
+    args=(-p --model "$model" --max-turns "$turns" --output-format json --no-session-persistence)
+    if [ -n "$agent" ]; then
+      [[ "$agent" =~ ^[a-z0-9-]+$ ]] || { echo "bad agent" >&2; exit 2; }
+      args+=(--agent "$agent")
+    fi
+    # ENABLE_CLAUDEAI_MCP_SERVERS=false: claude.ai connectors don't load under a setup-token anyway
+    exec env ENABLE_CLAUDEAI_MCP_SERVERS=false MCP_TIMEOUT=120000 claude "${args[@]}"
+    ;;
+  git-pull-brain)
+    exec git -C /home/spok1/brain pull -q --ff-only
+    ;;
+  auth-status)
+    exec claude auth status
+    ;;
+  gh-ci)
+    [[ "${2:-}" =~ $REPO_RE ]] || { echo "bad repo" >&2; exit 2; }
+    branch="$(gh api "repos/$2" --jq .default_branch)"
+    exec gh run list -R "$2" --branch "$branch" --limit 1 --json conclusion,status,workflowName,displayTitle,url,databaseId
+    ;;
+  gh-prs)
+    [[ "${2:-}" =~ $REPO_RE ]] || { echo "bad repo" >&2; exit 2; }
+    exec gh pr list -R "$2" --state open --json number,title,url,createdAt,isDraft
+    ;;
+  *)
+    echo "usage: spok1-runas claude-job|git-pull-brain|auth-status|gh-ci|gh-prs" >&2; exit 2
+    ;;
+esac
